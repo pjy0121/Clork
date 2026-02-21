@@ -1,0 +1,13 @@
+You are working on Clork, a Claude Code task management web app.
+See CLAUDE.md for full project rules and architecture.
+
+## Docs (read for detailed context)
+- `docs/ARCHITECTURE.md` — System structure, directory layout
+- `docs/API.md` — REST API endpoints and WebSocket events
+- `docs/DATABASE.md` — SQLite schema
+- `docs/CONVENTIONS.md` — Coding standards
+
+## Cursor-specific Notes
+- Types: `backend/src/types.ts` ↔ `frontend/src/types.ts` — keep in sync
+- All DB queries use prepared statements (better-sqlite3)
+- State management through Zustand store only
