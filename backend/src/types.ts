@@ -20,6 +20,7 @@ export interface Session {
   name: string;
   model: string | null;
   status: SessionStatus;
+  isActive: boolean;
   sessionOrder: number;
   claudeSessionId: string | null;
   nextSessionId: string | null;

@@ -97,6 +97,13 @@ try {
   // Column already exists
 }
 
+// Add isActive to sessions for activation state (separate from running status)
+try {
+  db.exec(`ALTER TABLE sessions ADD COLUMN isActive INTEGER DEFAULT 0`);
+} catch {
+  // Column already exists
+}
+
 // ========== Project Operations ==========
 export const projectOps = {
   getAll: db.prepare('SELECT * FROM projects ORDER BY createdAt DESC'),
@@ -115,10 +122,13 @@ export const sessionOps = {
   getByProject: db.prepare('SELECT * FROM sessions WHERE projectId = ? ORDER BY sessionOrder ASC'),
   getById: db.prepare('SELECT * FROM sessions WHERE id = ?'),
   create: db.prepare(
-    'INSERT INTO sessions (id, projectId, name, model, status, sessionOrder) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO sessions (id, projectId, name, model, status, isActive, sessionOrder) VALUES (?, ?, ?, ?, ?, ?, ?)'
   ),
   updateStatus: db.prepare(
     'UPDATE sessions SET status = ?, updatedAt = datetime(\'now\') WHERE id = ?'
+  ),
+  updateIsActive: db.prepare(
+    'UPDATE sessions SET isActive = ?, updatedAt = datetime(\'now\') WHERE id = ?'
   ),
   updateName: db.prepare(
     'UPDATE sessions SET name = ?, updatedAt = datetime(\'now\') WHERE id = ?'

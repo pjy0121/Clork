@@ -37,6 +37,8 @@ export const sessionsApi = {
     request<Session>(`/sessions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   start: (id: string) =>
     request<Session>(`/sessions/${id}/start`, { method: 'POST' }),
+  toggle: (id: string) =>
+    request<Session>(`/sessions/${id}/toggle`, { method: 'POST' }),
   reorder: (sessionOrders: { id: string; sessionOrder: number }[]) =>
     request<{ success: boolean }>('/sessions/reorder', {
       method: 'POST',

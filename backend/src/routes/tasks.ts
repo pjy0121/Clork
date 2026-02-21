@@ -146,11 +146,11 @@ router.post('/:id/move', (req: Request, res: Response) => {
 
     const task = taskOps.getById.get(req.params.id);
 
-    // Auto-start: if moved to todo and session is idle/running/completed, process next task
+    // Auto-start: if moved to todo and session is active, process next task
     if (location === 'todo' && newSessionId) {
       const session = sessionOps.getById.get(newSessionId) as any;
-      if (session && (session.status === 'running' || session.status === 'completed' || session.status === 'idle')) {
-        // For completed sessions, processSession will automatically change status back to running
+      if (session && session.isActive) {
+        // Only process if session is active
         taskRunner.processSession(newSessionId);
       }
     }

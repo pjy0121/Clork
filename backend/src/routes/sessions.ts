@@ -42,7 +42,7 @@ router.post('/', (req: Request, res: Response) => {
     }
     const id = randomUUID();
     const maxOrder = (sessionOps.getMaxOrder.get(projectId) as any)?.maxOrder ?? -1;
-    sessionOps.create.run(id, projectId, name, model || null, 'idle', maxOrder + 1);
+    sessionOps.create.run(id, projectId, name, model || null, 'idle', 0, maxOrder + 1);
 
     // If prompt is provided, auto-create a task in the session's todo
     if (prompt && prompt.trim()) {
@@ -88,7 +88,7 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 });
 
-// POST /api/sessions/:id/start - Start a session
+// POST /api/sessions/:id/start - Start a session (legacy - requires tasks)
 router.post('/:id/start', (req: Request, res: Response) => {
   try {
     const session = sessionOps.getById.get(req.params.id) as Session | undefined;
@@ -107,6 +107,39 @@ router.post('/:id/start', (req: Request, res: Response) => {
       sessionOps.updateStatus.run('idle', session.id);
     }
     taskRunner.processSession(session.id);
+    const updated = sessionOps.getById.get(req.params.id);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/sessions/:id/toggle - Toggle session activation
+router.post('/:id/toggle', (req: Request, res: Response) => {
+  try {
+    const session = sessionOps.getById.get(req.params.id) as Session | undefined;
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Toggle isActive state
+    const newIsActive = !session.isActive;
+    sessionOps.updateIsActive.run(newIsActive ? 1 : 0, session.id);
+
+    if (!newIsActive && session.status === 'running') {
+      // If deactivating and there's a running task, abort it
+      const runningTaskId = taskRunner.getRunningTaskForSession(session.id);
+      if (runningTaskId) {
+        taskRunner.abortTask(runningTaskId);
+      }
+    } else if (newIsActive) {
+      // If activating, process pending tasks
+      const pendingTasks = taskOps.getTodo.all(session.id) as Task[];
+      if (pendingTasks.length > 0) {
+        taskRunner.processSession(session.id);
+      }
+    }
+
     const updated = sessionOps.getById.get(req.params.id);
     res.json(updated);
   } catch (error: any) {

@@ -289,30 +289,15 @@ export const useStore = create<AppState>((set, get) => ({
     });
   },
   toggleSession: async (id) => {
-    const state = get();
-    const session = state.sessions.find(s => s.id === id);
-    if (!session) return;
-
-    if (session.status === 'idle' || session.status === 'completed') {
-      // Start session
-      await get().startSession(id);
-    } else if (session.status === 'running') {
-      // Stop session: abort running task if any, then set session to idle
-      const runningTask = state.tasks.find(t => t.sessionId === id && t.status === 'running');
-      if (runningTask) {
-        await get().abortTask(runningTask.id);
+    const session = await sessionsApi.toggle(id);
+    set((s) => {
+      const updatedSessions = s.sessions.map((ss) => (ss.id === id ? session : ss));
+      const updatedSessionsByProject = { ...s.sessionsByProject };
+      if (session.projectId && updatedSessionsByProject[session.projectId]) {
+        updatedSessionsByProject[session.projectId] = updatedSessionsByProject[session.projectId].map((ss) => (ss.id === id ? session : ss));
       }
-      // Update session status to idle
-      const updatedSession = await sessionsApi.update(id, { status: 'idle' });
-      set((s) => {
-        const updatedSessions = s.sessions.map((ss) => (ss.id === id ? updatedSession : ss));
-        const updatedSessionsByProject = { ...s.sessionsByProject };
-        if (updatedSession.projectId && updatedSessionsByProject[updatedSession.projectId]) {
-          updatedSessionsByProject[updatedSession.projectId] = updatedSessionsByProject[updatedSession.projectId].map((ss) => (ss.id === id ? updatedSession : ss));
-        }
-        return { sessions: updatedSessions, sessionsByProject: updatedSessionsByProject };
-      });
-    }
+      return { sessions: updatedSessions, sessionsByProject: updatedSessionsByProject };
+    });
   },
   deleteSession: async (id) => {
     await sessionsApi.delete(id);

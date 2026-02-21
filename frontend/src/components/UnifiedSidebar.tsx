@@ -673,15 +673,15 @@ function DraggableSession({
       <button
         onClick={onToggle}
         className={`w-full p-3 transition-colors flex items-center justify-center gap-2 border-t ${
-          session.status === 'running'
-            ? 'bg-orange-500 text-white hover:bg-orange-600 border-orange-600'
-            : 'bg-green-500 text-white hover:bg-green-600 border-green-600'
+          session.isActive
+            ? 'bg-green-500 text-white hover:bg-green-600 border-green-600'
+            : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500 border-gray-400 dark:border-gray-500'
         }`}
-        title={session.status === 'running' ? '세션 중단' : '세션 활성화'}
+        title={session.isActive ? '세션 비활성화' : '세션 활성화'}
       >
-        <Power size={20} />
+        <Power size={20} className={session.isActive ? '' : 'opacity-60'} />
         <span className="text-sm font-semibold">
-          {session.status === 'running' ? '중단' : '활성화'}
+          {session.isActive ? '활성화됨' : '비활성화됨'}
         </span>
       </button>
     </div>

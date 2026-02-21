@@ -143,6 +143,7 @@ export default function SessionView() {
 
   // Extract result from events
   const extractResult = (events: TaskEvent[]): string => {
+    // First check for a complete result event
     const resultEvent = events.find(e => {
       try {
         const data = JSON.parse(e.data);
@@ -157,21 +158,25 @@ export default function SessionView() {
       return data.result || '';
     }
 
-    const assistantMessages: string[] = [];
+    // Otherwise, accumulate all assistant message text blocks
+    // Claude streams responses, so we need to collect all text pieces
+    const allTextBlocks: string[] = [];
+
     events.forEach(e => {
       try {
         const data = JSON.parse(e.data);
         if (data.type === 'assistant' && data.message?.content) {
           data.message.content.forEach((block: any) => {
-            if (block.type === 'text') {
-              assistantMessages.push(block.text);
+            if (block.type === 'text' && block.text) {
+              allTextBlocks.push(block.text);
             }
           });
         }
       } catch { }
     });
 
-    return assistantMessages.join('\n\n');
+    // Join all text blocks to form the complete response
+    return allTextBlocks.join('');
   };
 
   const displayResult = displayTask ? extractResult(displayEvents) : '';

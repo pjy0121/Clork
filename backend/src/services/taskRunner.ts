@@ -64,6 +64,12 @@ class TaskRunner {
         return;
       }
 
+      // Check if session is active (can auto-execute tasks)
+      if (!session.isActive) {
+        console.log(`[TaskRunner] Session ${sessionId} is not active, skipping auto-execution`);
+        return;
+      }
+
       // Ensure session is in running state (multiple sessions can run concurrently)
       if (session.status !== 'running') {
         console.log(`[TaskRunner] Session ${sessionId} set to running`);
@@ -202,12 +208,17 @@ class TaskRunner {
             result,
           });
 
-          // Process next task in this session
-          console.log(`[TaskRunner] Scheduling next task check for session ${session.id}`);
-          setTimeout(() => {
-            console.log(`[TaskRunner] Running scheduled processSession for ${session.id}`);
-            this.processSession(session.id);
-          }, 500);
+          // Process next task in this session if the session is still active
+          const currentSession = sessionOps.getById.get(session.id) as Session;
+          if (currentSession.isActive) {
+            console.log(`[TaskRunner] Scheduling next task check for active session ${session.id}`);
+            setTimeout(() => {
+              console.log(`[TaskRunner] Running scheduled processSession for ${session.id}`);
+              this.processSession(session.id);
+            }, 500);
+          } else {
+            console.log(`[TaskRunner] Session ${session.id} is not active, not processing next task`);
+          }
         },
 
         onError: (error) => {
