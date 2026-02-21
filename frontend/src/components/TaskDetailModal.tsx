@@ -16,6 +16,7 @@ import remarkGfm from 'remark-gfm';
 import { useStore } from '../store';
 import type { TaskEvent, ParsedEventData } from '../types';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function TaskDetailModal() {
   const {
@@ -27,6 +28,7 @@ export default function TaskDetailModal() {
     createTask,
     activeProjectId,
   } = useStore();
+  const { t } = useTranslation();
 
   const task = tasks.find((t) => t.id === taskDetailId);
   const events = taskDetailId ? taskEvents[taskDetailId] || [] : [];
@@ -40,11 +42,11 @@ export default function TaskDetailModal() {
   if (!taskDetailId || !task) return null;
 
   const statusConfig = {
-    pending: { icon: Clock, color: 'text-gray-500', label: '대기' },
-    running: { icon: Loader2, color: 'text-blue-500', label: '실행 중' },
-    completed: { icon: CheckCircle2, color: 'text-green-500', label: '완료' },
-    failed: { icon: XCircle, color: 'text-red-500', label: '실패' },
-    aborted: { icon: AlertTriangle, color: 'text-orange-500', label: '중단됨' },
+    pending: { icon: Clock, color: 'text-slate-500 dark:text-[#8492c4]', label: t('sessions.status.idle') },
+    running: { icon: Loader2, color: 'text-indigo-400', label: t('sessions.status.running') },
+    completed: { icon: CheckCircle2, color: 'text-emerald-400', label: t('sessions.status.completed') },
+    failed: { icon: XCircle, color: 'text-rose-400', label: t('sessions.status.failed') },
+    aborted: { icon: AlertTriangle, color: 'text-amber-400', label: t('sessions.status.aborted') },
   };
 
   const config = statusConfig[task.status as keyof typeof statusConfig] || statusConfig.pending;
@@ -56,7 +58,7 @@ export default function TaskDetailModal() {
   if (resultEvent) {
     try {
       resultData = JSON.parse(resultEvent.data);
-    } catch {}
+    } catch { }
   }
 
   const handleCopyToBacklog = async () => {
@@ -67,7 +69,7 @@ export default function TaskDetailModal() {
         location: 'backlog',
       });
       setTaskDetailId(null);
-      toast.success('백로그에 복사되었습니다');
+      toast.success(t('tasks.copiedToBacklog'));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -75,75 +77,75 @@ export default function TaskDetailModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4"
       onClick={() => setTaskDetailId(null)}
     >
       <div
-        className="card w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col animate-fade-in"
+        className="dashboard-panel w-full max-w-5xl max-h-[90vh] flex flex-col animate-fade-in bg-white dark:bg-[#1a223f] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-          <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-800 flex items-start justify-between shrink-0">
+        <div className="px-8 py-6 border-b border-slate-200 dark:border-[#8492c4]/10 flex items-start justify-between shrink-0 bg-slate-50 dark:bg-[#111936]">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <StatusIcon size={15} className={config.color} />
-              <span className={`badge-${task.status}`}>{config.label}</span>
+            <div className="flex items-center gap-3 mb-4">
+              <StatusIcon size={20} className={config.color} />
+              <span className={`text-xs font-bold uppercase tracking-wider ${config.color} border border-current rounded-md px-2 py-1 bg-current/10`}>{config.label}</span>
             </div>
-            <h2 className="text-sm font-medium text-gray-800 dark:text-gray-200 break-words leading-relaxed">{task.prompt}</h2>
+            <h2 className="text-base font-medium text-slate-900 dark:text-white break-words leading-relaxed tracking-wide shadow-none">{task.prompt}</h2>
           </div>
-          <button onClick={() => setTaskDetailId(null)} className="btn-icon shrink-0 ml-3">
-            <X size={15} />
+          <button onClick={() => setTaskDetailId(null)} className="btn-icon shrink-0 ml-8 hover:bg-slate-200 dark:hover:bg-[#212946] hover:text-slate-900 dark:hover:text-white p-2 border border-transparent hover:border-slate-300 dark:hover:border-[#8492c4]/20 transition-colors">
+            <X size={20} />
           </button>
         </div>
 
         {/* Meta */}
-          <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-wrap shrink-0 bg-gray-50 dark:bg-gray-800/40">
-          <div className="flex items-center gap-1.5">
-            <Clock size={12} />
-            생성: {new Date(task.createdAt).toLocaleString('ko-KR')}
+        <div className="px-8 py-3 border-b border-slate-200 dark:border-[#8492c4]/10 flex items-center gap-6 text-xs font-semibold text-slate-500 dark:text-[#8492c4] flex-wrap shrink-0 bg-white dark:bg-[#1a223f] uppercase tracking-wider">
+          <div className="flex items-center gap-2">
+            <Clock size={12} className="text-slate-600" />
+            {t('sessions.init')}: {new Date(task.createdAt).toLocaleString('en-US', { hour12: false })}
           </div>
           {task.startedAt && (
-            <div className="flex items-center gap-1.5">
-              <Timer size={12} />
-              시작: {new Date(task.startedAt).toLocaleString('ko-KR')}
+            <div className="flex items-center gap-2">
+              <Timer size={12} className="text-cyan-600" />
+              {t('sessions.start')}: {new Date(task.startedAt).toLocaleString('en-US', { hour12: false })}
             </div>
           )}
           {task.completedAt && (
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 size={12} />
-              종료: {new Date(task.completedAt).toLocaleString('ko-KR')}
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={12} className="text-emerald-600" />
+              {t('sessions.end')}: {new Date(task.completedAt).toLocaleString('en-US', { hour12: false })}
             </div>
           )}
           {(resultData?.total_cost_usd !== undefined || resultData?.cost_usd !== undefined) && (
-            <div className="flex items-center gap-1.5">
-              <DollarSign size={12} />
-              비용: ${Number(resultData!.total_cost_usd ?? resultData!.cost_usd).toFixed(4)}
+            <div className="flex items-center gap-2">
+              <DollarSign size={12} className="text-amber-600" />
+              {t('sessions.cost')}: ${Number(resultData!.total_cost_usd ?? resultData!.cost_usd).toFixed(4)}
             </div>
           )}
           {resultData?.duration_ms !== undefined && (
-            <div className="flex items-center gap-1.5">
-              <Timer size={12} />
-              소요: {(resultData.duration_ms / 1000).toFixed(1)}s
+            <div className="flex items-center gap-2">
+              <Timer size={12} className="text-purple-600" />
+              {t('sessions.duration')}: {(resultData.duration_ms / 1000).toFixed(1)}s
             </div>
           )}
         </div>
 
         {/* Event Log */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="px-6 py-5">
-            <div className="flex items-center gap-1.5 mb-3">
-              <FileText size={13} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                실행 로그 ({events.length}개)
+        <div className="flex-1 overflow-y-auto scrollbar-thin bg-transparent">
+          <div className="px-8 py-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText size={16} className="text-slate-500 dark:text-[#8492c4]" />
+              <span className="text-sm font-bold text-slate-500 dark:text-[#8492c4]">
+                {t('sessions.systemLogs')} [{events.length}]
               </span>
             </div>
 
             {events.length === 0 ? (
-              <div className="text-center py-8 text-sm text-gray-400">
-                이벤트 로그가 없습니다
+              <div className="text-center py-12 text-sm font-medium text-slate-500 dark:text-[#8492c4] uppercase border border-dashed border-slate-300 dark:border-[#8492c4]/20 bg-slate-50 dark:bg-[#111936] rounded-xl">
+                {t('sessions.noLogs')}
               </div>
             ) : (
-              <div className="bg-gray-950 rounded-lg p-4 font-mono text-xs leading-relaxed max-h-[26rem] overflow-y-auto scrollbar-thin">
+              <div className="bg-slate-900/40 dark:bg-[#0b0f19] border border-slate-200 dark:border-[#8492c4]/10 rounded-xl p-6 font-mono text-[11px] leading-loose max-h-[40rem] overflow-y-auto scrollbar-thin shadow-inner">
                 {events.map((evt) => (
                   <DetailEventLine key={evt.id} event={evt} />
                 ))}
@@ -153,16 +155,16 @@ export default function TaskDetailModal() {
         </div>
 
         {/* Actions */}
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-2 shrink-0">
-          <button onClick={() => setTaskDetailId(null)} className="btn-secondary">
-            닫기
+        <div className="px-8 py-6 border-t border-slate-200 dark:border-[#8492c4]/10 flex items-center justify-end gap-4 shrink-0 bg-slate-50 dark:bg-[#111936]">
+          <button onClick={() => setTaskDetailId(null)} className="btn-secondary px-6 py-2 text-sm font-semibold">
+            {t('common.close')}
           </button>
           <button
             onClick={handleCopyToBacklog}
-            className="btn-primary inline-flex items-center gap-1.5"
+            className="btn-primary inline-flex items-center gap-2 px-6 py-2 text-sm font-semibold"
           >
-            <Copy size={13} />
-            백로그에 복사
+            <Copy size={16} />
+            {t('sessions.copyToBacklog')}
           </button>
         </div>
       </div>
@@ -178,21 +180,21 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
     return null;
   }
 
-  const time = new Date(event.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const prefix = <span className="text-gray-600 mr-2">[{time}]</span>;
+  const time = new Date(event.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const prefix = <span className="text-slate-600 mr-2">[{time}]</span>;
 
   if (data.type === 'system' && data.subtype === 'init') {
     return (
-      <div className="text-gray-500 mb-1">
-        {prefix}[시스템] 세션 초기화 — 모델: {data.model}
+      <div className="text-slate-500 mb-1">
+        {prefix}[SYS] SESSION_INIT — MDL: {data.model}
       </div>
     );
   }
 
   if (data.type === 'task_started') {
     return (
-      <div className="text-green-400 mb-1">
-        {prefix}[시작] 프롬프트 실행 시작
+      <div className="text-emerald-400 mb-1">
+        {prefix}[EXEC] START_PROMPT_EXECUTION
       </div>
     );
   }
@@ -203,14 +205,14 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
         {data.message.content.map((block: any, i: number) => {
           if (block.type === 'text') {
             return (
-              <div key={i} className="text-green-300 mb-2">
+              <div key={i} className="text-indigo-300 mb-2">
                 {prefix}
-                <div className="prose prose-invert prose-xs max-w-none
-                  prose-pre:bg-gray-900 prose-pre:text-gray-300
-                  prose-code:text-cyan-400 prose-code:bg-gray-900
-                  prose-code:px-0.5 prose-code:rounded
-                  prose-a:text-blue-400 prose-headings:text-green-300
-                  prose-p:mb-1 prose-ul:my-1 prose-li:my-0">
+                <div className="prose prose-sm dark:prose-invert max-w-none
+                  prose-pre:bg-slate-50 dark:prose-pre:bg-[#1a223f] prose-pre:border-slate-200 dark:prose-pre:border-[#8492c4]/10 prose-pre:border
+                  prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
+                  prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:rounded font-mono
+                  prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-headings:text-slate-900 dark:prose-headings:text-white
+                  prose-p:mb-2 prose-ul:my-2 prose-li:my-1">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {block.text}
                   </ReactMarkdown>
@@ -220,8 +222,8 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
           }
           if (block.type === 'tool_use') {
             return (
-              <div key={i} className="text-yellow-400 mb-1">
-                {prefix}[도구] {block.name}({JSON.stringify(block.input).substring(0, 300)})
+              <div key={i} className="text-amber-400 mb-1">
+                {prefix}[TOOL] {block.name}({JSON.stringify(block.input).substring(0, 300)})
               </div>
             );
           }
@@ -236,29 +238,29 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
       ? data.content.substring(0, 500)
       : JSON.stringify(data.content).substring(0, 500);
     return (
-      <div className="text-cyan-400 mb-1 whitespace-pre-wrap">
-        {prefix}[결과] {content}
+      <div className="text-cyan-600 mb-1 whitespace-pre-wrap">
+        {prefix}[RES] {content}
       </div>
     );
   }
 
   if (data.type === 'result') {
     return (
-      <div className="text-emerald-400 mb-2 border-t border-gray-800 pt-1.5 mt-1.5">
-        {prefix}[완료]
-        <div className="prose prose-invert prose-xs max-w-none mt-1
-          prose-pre:bg-gray-900 prose-pre:text-gray-300
-          prose-code:text-cyan-400 prose-code:bg-gray-900
-          prose-code:px-0.5 prose-code:rounded
-          prose-a:text-blue-400 prose-headings:text-emerald-400
+      <div className="text-emerald-400 mb-2 border-t border-slate-200 dark:border-[#8492c4]/10 pt-1.5 mt-1.5">
+        {prefix}[FINAL_OK]
+        <div className="prose prose-sm dark:prose-invert max-w-none mt-1
+          prose-pre:bg-slate-50 dark:prose-pre:bg-[#1a223f] prose-pre:border-slate-200 dark:prose-pre:border-[#8492c4]/10 prose-pre:border
+          prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
+          prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:rounded font-mono
+          prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-headings:text-emerald-600 dark:prose-headings:text-emerald-400
           prose-p:mb-1 prose-ul:my-1 prose-li:my-0">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {data.result || '(결과 없음)'}
+            {data.result || '(NO_RESULT)'}
           </ReactMarkdown>
         </div>
         {data.cost_usd !== undefined && (
-          <div className="text-gray-500 mt-1">
-            비용: ${data.cost_usd?.toFixed(4)} | 시간: {((data.duration_ms || 0) / 1000).toFixed(1)}s
+          <div className="text-slate-500 dark:text-[#8492c4] mt-1 font-semibold tracking-wider">
+            COST: ${data.cost_usd?.toFixed(4)} | DUR: {((data.duration_ms || 0) / 1000).toFixed(1)}s
           </div>
         )}
       </div>
@@ -267,23 +269,23 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
 
   if (data.type === 'error' || data.type === 'stderr') {
     return (
-      <div className="text-red-400 mb-1">
-        {prefix}[오류] {data.text || data.error || JSON.stringify(data)}
+      <div className="text-rose-500 mb-1">
+        {prefix}[ERR] {data.text || data.error || JSON.stringify(data)}
       </div>
     );
   }
 
   if (data.type === 'aborted') {
     return (
-      <div className="text-orange-400 mb-1">
-        {prefix}[중단] 사용자에 의해 작업이 중단되었습니다
+      <div className="text-amber-500 mb-1">
+        {prefix}[ABORT] OPERATION_ABORTED_BY_USER
       </div>
     );
   }
 
   if (data.type === 'raw') {
     return (
-      <div className="text-gray-400 mb-1">
+      <div className="text-slate-500 mb-1">
         {prefix}{data.text}
       </div>
     );
@@ -291,8 +293,8 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
 
   if (data.type === 'human_input' || data.type === 'permission_request') {
     return (
-      <div className="text-purple-400 mb-1">
-        {prefix}[응답 요청] {data.text}
+      <div className="text-fuchsia-500 mb-1 bg-fuchsia-950/20 px-2 py-1 border-l-2 border-fuchsia-500 inline-block">
+        {prefix}[INPUT_REQ] {data.text}
       </div>
     );
   }

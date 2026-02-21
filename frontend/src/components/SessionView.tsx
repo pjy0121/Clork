@@ -35,6 +35,7 @@ import AddTaskModal from './AddTaskModal';
 import EditTaskModal from './EditTaskModal';
 import type { Task, TaskEvent, ParsedEventData } from '../types';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function SessionView() {
   const activeSessionId = useStore((s) => s.activeSessionId);
@@ -57,6 +58,7 @@ export default function SessionView() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const { t } = useTranslation();
   const [backlogExpanded, setBacklogExpanded] = useState(true);
   const [doneExpanded, setDoneExpanded] = useState(true);
   const [showEventLog, setShowEventLog] = useState(false);
@@ -287,13 +289,13 @@ export default function SessionView() {
   const isDisplayTaskRunning = displayTask?.status === 'running';
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div className="h-full flex gap-1 p-0 overflow-hidden bg-transparent">
       {/* ===== LEFT: Task Queue Panel ===== */}
-      <div className="w-[320px] shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col bg-gray-50/70 dark:bg-gray-950 overflow-hidden">
+      <div className="w-[480px] shrink-0 flex flex-col bg-slate-50 dark:bg-[#111936] border-r border-slate-200 dark:border-[#8492c4]/10 z-10 shadow-lg">
         {/* Session Header */}
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate flex-1">{session.name}</h2>
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-[#8492c4]/10 bg-slate-50 dark:bg-[#111936] shrink-0">
+          <div className="flex items-center gap-3">
+            <h2 className="font-bold text-base tracking-tight text-slate-900 dark:text-white truncate flex-1">{session.name}</h2>
             <SessionStatusBadge status={session.status} />
           </div>
         </div>
@@ -305,13 +307,13 @@ export default function SessionView() {
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <div className="p-3 space-y-5">
+            <div className="p-4 space-y-6">
               {/* 실행 중 */}
               {runningTask && (
                 <div>
-                  <SectionLabel icon={<Loader2 size={11} className="animate-spin text-blue-500" />} label="실행 중" />
+                  <SectionLabel icon={<Loader2 size={16} className="animate-spin text-indigo-400" />} label="Running" />
                   <div
-                    className={`cursor-pointer rounded-lg transition-all ${displayTask?.id === runningTask.id ? 'ring-2 ring-primary-400' : ''}`}
+                    className={`cursor-pointer transition-all mt-3 ${displayTask?.id === runningTask.id ? 'ring-2 ring-indigo-500 shadow-lg rounded-xl z-10 relative bg-white dark:bg-[#1a223f]' : ''}`}
                     onClick={() => handleSelectTask(runningTask.id)}
                   >
                     <TaskCard
@@ -325,18 +327,18 @@ export default function SessionView() {
               {/* 대기열 */}
               <DroppableSection id="droppable-todo">
                 <SectionLabel
-                  icon={<Zap size={11} className="text-amber-500" />}
-                  label={`대기열 (${todoTasks.length})`}
+                  icon={<Zap size={16} className="text-amber-500" />}
+                  label={`Queue [${todoTasks.length}]`}
                   extra={nextTaskId && !runningTask ? (
-                    <span className="badge-next text-xs px-1.5 py-0.5">다음</span>
+                    <span className="badge-next">Next</span>
                   ) : undefined}
                 />
                 <SortableContext items={todoTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-1">
+                  <div className="space-y-2 mt-3">
                     {todoTasks.map((task) => (
                       <div
                         key={task.id}
-                        className={`cursor-pointer rounded-lg transition-all ${displayTask?.id === task.id ? 'ring-2 ring-primary-400' : ''}`}
+                        className={`cursor-pointer transition-all rounded-xl ${displayTask?.id === task.id ? 'ring-2 ring-indigo-500 shadow-lg z-10 relative bg-white dark:bg-[#1a223f]' : ''}`}
                         onClick={() => handleSelectTask(task.id)}
                       >
                         <TaskCard
@@ -349,7 +351,7 @@ export default function SessionView() {
                   </div>
                 </SortableContext>
                 {todoTasks.length === 0 && (
-                  <EmptySlot label={runningTask ? '대기 중인 작업 없음' : '백로그에서 드래그하세요'} />
+                  <EmptySlot label={runningTask ? t('sessions.noQueuedTasks') : t('sessions.dragFromBacklog')} />
                 )}
               </DroppableSection>
 
@@ -357,22 +359,22 @@ export default function SessionView() {
               <DroppableSection id="droppable-backlog">
                 <button
                   onClick={() => setBacklogExpanded(!backlogExpanded)}
-                  className="flex items-center gap-1.5 w-full text-left mb-2 group"
+                  className="flex items-center gap-2 w-full text-left mb-4 group hover:bg-white dark:bg-[#1a223f] p-2 rounded-xl transition-colors border border-transparent hover:border-slate-200 dark:border-[#8492c4]/10"
                 >
-                  {backlogExpanded ? <ChevronDown size={12} className="text-gray-400" /> : <ChevronRight size={12} className="text-gray-400" />}
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    백로그 ({backlogTasks.length})
+                  {backlogExpanded ? <ChevronDown size={16} className="text-slate-500 dark:text-[#8492c4]" /> : <ChevronRight size={16} className="text-slate-500 dark:text-[#8492c4]" />}
+                  <span className="text-sm font-semibold text-slate-500 dark:text-[#8492c4] flex-1">
+                    {t('sessions.backlog')} [{backlogTasks.length}]
                   </span>
-                  <Archive size={11} className="text-gray-400 ml-0.5" />
+                  <Archive size={16} className="text-slate-900 dark:text-[#d7dcec]" />
                 </button>
                 {backlogExpanded && (
                   <>
                     <SortableContext items={backlogTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         {backlogTasks.map((task) => (
                           <div
                             key={task.id}
-                            className={`cursor-pointer rounded-lg transition-all ${displayTask?.id === task.id ? 'ring-2 ring-primary-400' : ''}`}
+                            className={`cursor-pointer transition-all rounded-xl ${displayTask?.id === task.id ? 'ring-2 ring-indigo-500 shadow-lg z-10 relative bg-white dark:bg-[#1a223f]' : ''}`}
                             onClick={() => handleSelectTask(task.id)}
                           >
                             <TaskCard
@@ -384,7 +386,7 @@ export default function SessionView() {
                       </div>
                     </SortableContext>
                     {backlogTasks.length === 0 && (
-                      <EmptySlot label="비어 있음" />
+                      <EmptySlot label={t('sessions.empty')} />
                     )}
                   </>
                 )}
@@ -392,23 +394,23 @@ export default function SessionView() {
 
               {/* 완료됨 */}
               {doneTasks.length > 0 && (
-                <div>
+                <div className="pt-2">
                   <button
                     onClick={() => setDoneExpanded(!doneExpanded)}
-                    className="flex items-center gap-1.5 w-full text-left mb-2"
+                    className="flex items-center gap-2 w-full text-left mb-4 group hover:bg-white dark:bg-[#1a223f] p-2 rounded-xl transition-colors border border-transparent hover:border-slate-200 dark:border-[#8492c4]/10"
                   >
-                    {doneExpanded ? <ChevronDown size={12} className="text-gray-400" /> : <ChevronRight size={12} className="text-gray-400" />}
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      완료됨 ({doneTasks.length})
+                    {doneExpanded ? <ChevronDown size={16} className="text-emerald-500" /> : <ChevronRight size={16} className="text-emerald-500" />}
+                    <span className="text-sm font-semibold text-slate-500 dark:text-[#8492c4] flex-1">
+                      {t('sessions.completed')} [{doneTasks.length}]
                     </span>
-                    <CheckCheck size={11} className="text-gray-400 ml-0.5" />
+                    <CheckCheck size={16} className="text-emerald-500" />
                   </button>
                   {doneExpanded && (
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {doneTasks.map((task) => (
                         <div
                           key={task.id}
-                          className={`cursor-pointer rounded-lg transition-all ${displayTask?.id === task.id ? 'ring-2 ring-primary-400' : ''}`}
+                          className={`cursor-pointer transition-all rounded-xl ${displayTask?.id === task.id ? 'ring-2 ring-indigo-500 shadow-lg z-10 relative bg-white dark:bg-[#1a223f]' : ''}`}
                           onClick={() => handleSelectTask(task.id)}
                         >
                           <TaskCard task={task} isDone />
@@ -423,12 +425,12 @@ export default function SessionView() {
         </div>
 
         {/* Add Task Input */}
-        <div className="shrink-0 border-t border-gray-200 dark:border-gray-800 p-3 bg-white dark:bg-gray-900">
-          <div className="flex gap-1.5">
+        <div className="shrink-0 border-t border-slate-200 dark:border-[#8492c4]/10 p-4 bg-slate-50 dark:bg-[#111936]">
+          <div className="flex gap-2">
             <textarea
-              className="input resize-none text-xs py-2 flex-1"
+              className="input resize-none py-3 flex-1 bg-white dark:bg-[#1a223f] placeholder-[#8492c4] focus:border-indigo-500 focus:bg-slate-50 dark:bg-[#111936] text-sm"
               rows={2}
-              placeholder="새 작업 입력... (Ctrl+Enter)"
+              placeholder={t('sessions.newTaskPrompt')}
               value={newPrompt}
               onChange={(e) => setNewPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -450,17 +452,17 @@ export default function SessionView() {
                   }
                 }}
                 disabled={!newPrompt.trim()}
-                className="btn-primary !px-2.5 !py-1.5"
-                title="백로그에 추가"
+                className="btn-primary !px-3 !py-2 border-r-0 border-t-0"
+                title="ADD_TO_BACKLOG"
               >
                 <Plus size={14} />
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="btn-secondary !px-2.5 !py-1.5 text-xs"
-                title="팝업으로 추가"
+                className="btn-secondary !px-3 !py-2 text-[10px]"
+                title="ADVANCED_ADD"
               >
-                <Plus size={12} />+
+                [+]
               </button>
             </div>
           </div>
@@ -468,90 +470,90 @@ export default function SessionView() {
       </div>
 
       {/* ===== RIGHT: Task Detail / Output Panel ===== */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin bg-white dark:bg-gray-950">
+      <div className="flex-1 overflow-y-auto scrollbar-thin flex flex-col bg-transparent border-y-0 border-r-0">
         {displayTask ? (
           <div className="h-full flex flex-col">
             {/* Task Header */}
-            <div className={`px-6 py-4 border-b shrink-0 flex items-center justify-between ${
-              isDisplayTaskRunning
-                ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30'
-                : displayTask.status === 'completed'
-                  ? 'bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30'
-                  : displayTask.status === 'failed'
-                    ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'
-                    : displayTask.status === 'aborted'
-                      ? 'bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30'
-                      : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800'
-            }`}>
-              <div className="flex items-center gap-2 min-w-0">
+            <div className={`px-6 py-4 border-b shrink-0 flex items-center justify-between transition-colors ${isDisplayTaskRunning
+              ? 'bg-indigo-500/10 border-indigo-500/20'
+              : displayTask.status === 'completed'
+                ? 'bg-emerald-500/10 border-emerald-500/20'
+                : displayTask.status === 'failed'
+                  ? 'bg-rose-500/10 border-rose-500/20'
+                  : displayTask.status === 'aborted'
+                    ? 'bg-amber-500/10 border-amber-500/20'
+                    : 'bg-slate-50 dark:bg-[#111936] border-slate-200 dark:border-[#8492c4]/10'
+              }`}>
+              <div className="flex items-center gap-3 min-w-0 font-semibold text-sm">
                 {isDisplayTaskRunning ? (
-                  <Loader2 size={13} className="animate-spin text-blue-500 shrink-0" />
+                  <Loader2 size={16} className="animate-spin text-indigo-400 shrink-0" />
                 ) : (
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${
-                    displayTask.status === 'completed' ? 'bg-green-500'
-                      : displayTask.status === 'failed' ? 'bg-red-500'
-                        : displayTask.status === 'aborted' ? 'bg-orange-500'
-                          : 'bg-gray-400'
-                  }`} />
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${displayTask.status === 'completed' ? 'bg-emerald-400'
+                    : displayTask.status === 'failed' ? 'bg-rose-400'
+                      : displayTask.status === 'aborted' ? 'bg-amber-400'
+                        : 'bg-[#8492c4]'
+                    }`} />
                 )}
-                <span className={`text-xs font-semibold ${
-                  isDisplayTaskRunning ? 'text-blue-700 dark:text-blue-300'
-                    : displayTask.status === 'completed' ? 'text-green-700 dark:text-green-300'
-                      : displayTask.status === 'failed' ? 'text-red-700 dark:text-red-300'
-                        : displayTask.status === 'aborted' ? 'text-orange-700 dark:text-orange-300'
-                          : 'text-gray-600 dark:text-gray-400'
-                }`}>
-                  {isDisplayTaskRunning ? '실행 중'
-                    : displayTask.status === 'completed' ? '완료'
-                      : displayTask.status === 'failed' ? '실패'
-                        : displayTask.status === 'aborted' ? '중단됨'
-                          : '대기 중'}
+                <span className={`${isDisplayTaskRunning ? 'text-indigo-400'
+                  : displayTask.status === 'completed' ? 'text-emerald-400'
+                    : displayTask.status === 'failed' ? 'text-rose-400'
+                      : displayTask.status === 'aborted' ? 'text-amber-400'
+                        : 'text-slate-500 dark:text-[#8492c4]'
+                  }`}>
+                  {isDisplayTaskRunning ? t('sessions.status.running')
+                    : displayTask.status === 'completed' ? t('sessions.status.completed')
+                      : displayTask.status === 'failed' ? t('sessions.status.failed')
+                        : displayTask.status === 'aborted' ? t('sessions.status.aborted')
+                          : t('sessions.status.idle')}
                 </span>
               </div>
               {isDisplayTaskRunning && (
                 <button
                   onClick={() => abortTask(displayTask.id)}
-                  className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
-                  title="중단"
+                  className="btn-danger !px-3 !py-1 !text-xs"
+                  title="ABORT_SYSTEM"
                 >
-                  <Square size={13} />
+                  <Square size={10} className="inline-block mr-1" /> {t('tasks.abort')}
                 </button>
               )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto scrollbar-thin p-8 space-y-8 bg-transparent">
               {/* Prompt */}
               <div>
-                <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">프롬프트</div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 px-5 py-4 rounded-xl leading-relaxed border border-gray-100 dark:border-gray-700/50">
+                <div className="text-sm font-bold text-slate-500 dark:text-[#8492c4] mb-3 flex items-center gap-2">
+                  <FileText size={16} />
+                  {t('sessions.prompt')}
+                </div>
+                <div className="dashboard-panel text-sm text-slate-900 dark:text-[#d7dcec] bg-slate-50 dark:bg-[#111936] px-6 py-6 border border-slate-200 dark:border-[#8492c4]/10 leading-relaxed whitespace-pre-wrap">
                   {displayTask.prompt}
-                </p>
+                </div>
               </div>
 
               {/* Result */}
               {(displayResult || !isDisplayTaskRunning) && (
                 <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <FileText size={13} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">결과</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCheck size={16} className="text-emerald-400" />
+                    <span className="text-sm font-bold text-emerald-400">{t('sessions.result')}</span>
                   </div>
-                  <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+                  <div className="dashboard-panel bg-slate-50 dark:bg-[#111936] border border-slate-200 dark:border-[#8492c4]/10 p-6 shadow-sm overflow-hidden">
                     {displayResult ? (
-                      <div className="prose prose-sm prose-gray dark:prose-invert max-w-none
-                          prose-pre:bg-gray-100 dark:prose-pre:bg-gray-950
-                          prose-code:text-blue-600 dark:prose-code:text-blue-400
-                          prose-code:bg-gray-100 dark:prose-code:bg-gray-800
-                          prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-                          prose-headings:font-semibold
-                          prose-a:text-blue-600 dark:prose-a:text-blue-400">
+                      <div className="prose prose-sm dark:prose-invert max-w-none
+                          prose-pre:bg-slate-50 dark:prose-pre:bg-[#1a223f] prose-pre:border-slate-200 dark:prose-pre:border-[#8492c4]/10 prose-pre:border
+                          prose-code:text-indigo-600 dark:prose-code:text-indigo-300
+                          prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
+                          prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:rounded
+                          prose-headings:text-slate-900 dark:prose-headings:text-white
+                          prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {displayResult}
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <div className="text-gray-400 dark:text-gray-500 text-center py-6 text-sm">
-                        {isDisplayTaskRunning ? 'Claude가 응답을 생성 중입니다...' : '결과가 없습니다.'}
+                      <div className="text-slate-500 dark:text-[#8492c4] font-medium text-center py-8 text-sm">
+                        {isDisplayTaskRunning ? t('sessions.awaitingResponse') : t('sessions.noOutput')}
                       </div>
                     )}
                   </div>
@@ -570,26 +572,26 @@ export default function SessionView() {
               <div>
                 <button
                   onClick={() => setShowEventLog(!showEventLog)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-wider transition-colors"
+                  className="flex items-center gap-2 text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors mb-3"
                 >
-                  <Code size={13} />
-                  이벤트 로그 ({displayEvents.length})
-                  {showEventLog ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  <Code size={16} />
+                  {t('sessions.systemLogs')} [{displayEvents.length}]
+                  {showEventLog ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 </button>
 
                 {showEventLog && (
                   <div
                     ref={outputRef}
-                    className="mt-3 bg-gray-950 rounded-xl p-5 max-h-[32rem] overflow-y-auto scrollbar-thin font-mono text-xs leading-relaxed"
+                    className="dashboard-panel bg-slate-900/40 dark:bg-[#0b0f19] border border-slate-200 dark:border-[#8492c4]/10 p-6 max-h-[40rem] overflow-y-auto scrollbar-thin text-sm text-slate-300 shadow-inner"
                   >
                     {displayEvents.length === 0 && isDisplayTaskRunning && (
-                      <div className="text-gray-500 flex items-center gap-2">
-                        <Loader2 size={12} className="animate-spin" />
-                        Claude 응답 대기 중...
+                      <div className="text-indigo-400 flex items-center gap-2 font-medium">
+                        <Loader2 size={14} className="animate-spin" />
+                        {t('sessions.fetchingLogs')}
                       </div>
                     )}
                     {displayEvents.length === 0 && !isDisplayTaskRunning && (
-                      <div className="text-gray-500">이벤트 로그가 없습니다.</div>
+                      <div className="text-slate-500 dark:text-[#8492c4] font-medium">{t('sessions.noLogs')}</div>
                     )}
                     {displayEvents.map((evt) => (
                       <EventLine key={evt.id} event={evt} />
@@ -600,12 +602,15 @@ export default function SessionView() {
             </div>
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <FileText size={20} className="text-gray-400" />
+          <div className="h-full flex items-center justify-center bg-transparent">
+            <div className="text-center dashboard-panel p-10 mx-4 max-w-sm">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-inner">
+                <FileText size={24} className="text-indigo-400" />
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">작업을 선택하면 결과가 표시됩니다</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t('sessions.noTaskSelected')}</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-[#8492c4]">
+                {t('sessions.selectTaskMsg')}
+              </p>
             </div>
           </div>
         )}
@@ -634,12 +639,13 @@ export default function SessionView() {
 
 // ===== Session Status Badge =====
 function SessionStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const config: Record<string, { label: string; className: string }> = {
-    idle: { label: '대기', className: 'badge-idle' },
-    queued: { label: '큐 대기', className: 'badge-next' },
-    running: { label: '실행 중', className: 'badge-running' },
-    completed: { label: '완료', className: 'badge-completed' },
-    paused: { label: '일시정지', className: 'badge-idle' },
+    idle: { label: t('sessions.status.idle'), className: 'badge-idle' },
+    queued: { label: t('sessions.status.queued'), className: 'badge-next' },
+    running: { label: t('sessions.status.running'), className: 'badge-running' },
+    completed: { label: t('sessions.status.completed'), className: 'badge-completed' },
+    paused: { label: t('sessions.status.paused'), className: 'badge-idle' },
   };
   const c = config[status] || config.idle;
   return (
@@ -653,9 +659,9 @@ function SessionStatusBadge({ status }: { status: string }) {
 // ===== Section Label =====
 function SectionLabel({ icon, label, extra }: { icon?: React.ReactNode; label: string; extra?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1.5 mb-2">
+    <div className="flex items-center gap-2 mb-2">
       {icon}
-      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-1">{label}</span>
+      <span className="text-xs font-bold text-slate-500 dark:text-[#8492c4] uppercase flex-1">{label}</span>
       {extra}
     </div>
   );
@@ -664,7 +670,7 @@ function SectionLabel({ icon, label, extra }: { icon?: React.ReactNode; label: s
 // ===== Empty Slot =====
 function EmptySlot({ label }: { label: string }) {
   return (
-    <div className="text-center py-4 text-xs text-gray-400 dark:text-gray-500 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+    <div className="text-center py-6 text-sm font-medium text-slate-500 dark:text-[#8492c4] border border-dashed border-slate-300 dark:border-[#8492c4]/20 bg-white dark:bg-[#1a223f]/50 rounded-xl">
       {label}
     </div>
   );
@@ -676,7 +682,7 @@ function DroppableSection({ id, children }: { id: string; children: React.ReactN
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg transition-all ${isOver ? 'bg-primary-50/50 dark:bg-primary-900/10 ring-1 ring-primary-300 dark:ring-primary-800 p-1' : ''}`}
+      className={`transition-all rounded-xl ${isOver ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50 p-2 -m-2' : ''}`}
     >
       {children}
     </div>
@@ -685,6 +691,7 @@ function DroppableSection({ id, children }: { id: string; children: React.ReactN
 
 // ===== Event Line =====
 function EventLine({ event }: { event: TaskEvent }) {
+  const { t } = useTranslation();
   let data: ParsedEventData;
   try {
     data = JSON.parse(event.data);
@@ -699,7 +706,7 @@ function EventLine({ event }: { event: TaskEvent }) {
   if (data.type === 'system' && data.subtype === 'init') {
     return (
       <div className="text-gray-500 mb-1">
-        ▶ [시스템] 세션 시작 — 모델: {data.model || 'unknown'}
+        {t('sessions.event.systemInit', { model: data.model || 'unknown' })}
       </div>
     );
   }
@@ -707,7 +714,7 @@ function EventLine({ event }: { event: TaskEvent }) {
   if (data.type === 'task_started') {
     return (
       <div className="text-green-400 mb-1">
-        ▶ [시작] {(data.prompt as string)?.substring(0, 150)}
+        {t('sessions.event.taskStarted', { prompt: (data.prompt as string)?.substring(0, 150) })}
       </div>
     );
   }
@@ -715,13 +722,13 @@ function EventLine({ event }: { event: TaskEvent }) {
   if (data.type === 'task_completed') {
     return (
       <div className="text-emerald-400 mb-1 border-t border-gray-800 pt-1.5 mt-1.5">
-        ✓ [완료] exit code: {data.exitCode}
+        {t('sessions.event.taskCompleted', { exitCode: data.exitCode })}
       </div>
     );
   }
 
   if (data.type === 'system' && data.text) {
-    return <div className="text-gray-500 mb-1">ℹ {data.text}</div>;
+    return <div className="text-gray-500 mb-1">{t('sessions.event.system', { text: data.text })}</div>;
   }
 
   if (data.type === 'rate_limit_event') {
@@ -729,7 +736,7 @@ function EventLine({ event }: { event: TaskEvent }) {
     if (info?.status === 'allowed') return null;
     return (
       <div className="text-yellow-400 mb-1">
-        ⚠ [속도 제한] {info?.status || 'unknown'}
+        {t('sessions.event.rateLimit', { status: info?.status || 'unknown' })}
       </div>
     );
   }
@@ -742,7 +749,7 @@ function EventLine({ event }: { event: TaskEvent }) {
             return (
               <details key={i} className="mb-1">
                 <summary className="text-gray-500 cursor-pointer hover:text-gray-400">
-                  💭 사고 과정
+                  {t('sessions.event.thinking')}
                 </summary>
                 <div className="text-gray-500 ml-3 mt-1 whitespace-pre-wrap">
                   {block.thinking?.substring(0, 1000)}
@@ -754,11 +761,11 @@ function EventLine({ event }: { event: TaskEvent }) {
           if (block.type === 'text') {
             return (
               <div key={i} className="text-green-300 mb-2">
-                <div className="prose prose-invert prose-xs max-w-none
-                  prose-pre:bg-gray-900 prose-pre:text-gray-300
-                  prose-code:text-cyan-400 prose-code:bg-gray-900
+                <div className="prose dark:prose-invert prose-xs max-w-none
+                  prose-pre:bg-slate-100 dark:prose-pre:bg-gray-900 prose-pre:text-slate-800 dark:prose-pre:text-gray-300
+                  prose-code:text-cyan-700 dark:prose-code:text-cyan-400 prose-code:bg-slate-100 dark:prose-code:bg-gray-900
                   prose-code:px-0.5 prose-code:rounded
-                  prose-a:text-blue-400 prose-headings:text-green-300
+                  prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-headings:text-green-700 dark:prose-headings:text-green-300
                   prose-p:mb-1 prose-ul:my-1 prose-li:my-0">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {block.text}
@@ -791,7 +798,7 @@ function EventLine({ event }: { event: TaskEvent }) {
         : JSON.stringify(data.content).substring(0, 500);
     return (
       <div className="text-cyan-400 mb-1 whitespace-pre-wrap">
-        ← [도구 결과] {content}
+        {t('sessions.event.toolResult', { content })}
       </div>
     );
   }
@@ -800,22 +807,22 @@ function EventLine({ event }: { event: TaskEvent }) {
     const cost = data.total_cost_usd ?? data.cost_usd;
     return (
       <div className="text-emerald-400 mb-2 border-t border-gray-800 pt-1.5 mt-1.5">
-        <div>✓ [결과]</div>
-        <div className="prose prose-invert prose-xs max-w-none mt-1
-          prose-pre:bg-gray-900 prose-pre:text-gray-300
-          prose-code:text-cyan-400 prose-code:bg-gray-900
+        <div>✓ [{t('sessions.event.resultLabel')}]</div>
+        <div className="prose dark:prose-invert prose-xs max-w-none mt-1
+          prose-pre:bg-slate-100 dark:prose-pre:bg-gray-900 prose-pre:text-slate-800 dark:prose-pre:text-gray-300
+          prose-code:text-cyan-700 dark:prose-code:text-cyan-400 prose-code:bg-slate-100 dark:prose-code:bg-gray-900
           prose-code:px-0.5 prose-code:rounded
-          prose-a:text-blue-400 prose-headings:text-emerald-400
+          prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-headings:text-emerald-600 dark:prose-headings:text-emerald-400
           prose-p:mb-1 prose-ul:my-1 prose-li:my-0">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {data.result || '(결과 없음)'}
+            {data.result || t('sessions.event.noResult')}
           </ReactMarkdown>
         </div>
         {(cost !== undefined || data.duration_ms !== undefined) && (
           <div className="text-gray-500 mt-1">
             {cost !== undefined && `💰 $${Number(cost).toFixed(4)}`}
             {data.duration_ms !== undefined && ` | ⏱ ${(data.duration_ms / 1000).toFixed(1)}s`}
-            {data.num_turns !== undefined && ` | 🔄 ${data.num_turns}턴`}
+            {data.num_turns !== undefined && t('sessions.event.turns', { count: data.num_turns })}
           </div>
         )}
       </div>
@@ -825,7 +832,7 @@ function EventLine({ event }: { event: TaskEvent }) {
   if (data.type === 'error') {
     return (
       <div className="text-red-400 mb-1">
-        ✗ [오류] {data.text || data.error || JSON.stringify(data).substring(0, 300)}
+        ✗ [{t('sessions.event.errorLabel')}] {data.text || data.error || JSON.stringify(data).substring(0, 300)}
       </div>
     );
   }
@@ -841,7 +848,7 @@ function EventLine({ event }: { event: TaskEvent }) {
   if (data.type === 'human_input' || data.type === 'permission_request' || data.type === 'input_request') {
     return (
       <div className="text-purple-400 mb-1 animate-pulse">
-        🖐 [응답 필요] {data.text || '사용자 입력을 기다리고 있습니다...'}
+        🖐 [{t('hitl.inputNeeded')}] {data.text || t('sessions.event.awaitingUserInput')}
       </div>
     );
   }
@@ -849,7 +856,7 @@ function EventLine({ event }: { event: TaskEvent }) {
   if (data.type === 'aborted') {
     return (
       <div className="text-orange-400 mb-1 border-t border-gray-800 pt-1.5 mt-1.5">
-        ⏹ [중단] {data.text || '사용자에 의해 작업이 중단되었습니다'}
+        ⏹ [{t('sessions.event.abortedLabel')}] {data.text || t('sessions.event.abortedByUser')}
       </div>
     );
   }

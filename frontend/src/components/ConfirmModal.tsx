@@ -1,4 +1,5 @@
 import { AlertTriangle, Info, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -18,28 +19,32 @@ export default function ConfirmModal({
   title,
   message,
   type = 'warning',
-  confirmText = '확인',
-  cancelText = '취소',
+  confirmText,
+  cancelText,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
+  const finalConfirmText = confirmText || t('common.confirm');
+  const finalCancelText = cancelText || t('common.cancel');
+
   if (!isOpen) return null;
 
   const typeConfig = {
     danger: {
       icon: AlertTriangle,
-      iconColor: 'text-red-500',
-      iconBg: 'bg-red-50 dark:bg-red-900/20',
+      iconColor: 'text-rose-400',
+      iconBg: 'bg-rose-500/10',
       confirmClass: 'btn-danger',
     },
     warning: {
       icon: AlertTriangle,
-      iconColor: 'text-amber-500',
-      iconBg: 'bg-amber-50 dark:bg-amber-900/20',
-      confirmClass: 'px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md font-medium text-sm transition-all duration-150',
+      iconColor: 'text-amber-400',
+      iconBg: 'bg-amber-500/10',
+      confirmClass: 'px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold text-sm transition-all duration-150 shadow-sm',
     },
     info: {
       icon: Info,
-      iconColor: 'text-blue-500',
-      iconBg: 'bg-blue-50 dark:bg-blue-900/20',
+      iconColor: 'text-indigo-400',
+      iconBg: 'bg-indigo-500/10',
       confirmClass: 'btn-primary',
     },
   };
@@ -49,11 +54,11 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="card p-7 w-full max-w-sm mx-4 animate-fade-in"
+        className="dashboard-panel p-7 w-full max-w-sm mx-4 animate-fade-in shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -62,7 +67,7 @@ export default function ConfirmModal({
             <Icon size={20} className={config.iconColor} />
           </div>
           <div className="flex-1 min-w-0 pt-0.5">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-base font-bold text-white tracking-tight">
               {title}
             </h3>
           </div>
@@ -75,7 +80,7 @@ export default function ConfirmModal({
         </div>
 
         {/* Content */}
-        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
+        <p className="text-sm text-slate-500 dark:text-[#8492c4] font-medium leading-relaxed mb-6">
           {message}
         </p>
 
@@ -85,7 +90,7 @@ export default function ConfirmModal({
             onClick={onClose}
             className="btn-secondary"
           >
-            {cancelText}
+            {finalCancelText}
           </button>
           <button
             onClick={() => {
@@ -94,7 +99,7 @@ export default function ConfirmModal({
             }}
             className={config.confirmClass}
           >
-            {confirmText}
+            {finalConfirmText}
           </button>
         </div>
       </div>

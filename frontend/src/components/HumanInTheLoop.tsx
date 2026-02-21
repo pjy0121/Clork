@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, MessageSquare, AlertCircle } from 'lucide-react';
 import { useStore } from '../store';
 import { tasksApi } from '../api';
@@ -12,7 +13,8 @@ interface Props {
 export default function HumanInTheLoop({ taskId, prompt }: Props) {
   const [response, setResponse] = useState('');
   const [sending, setSending] = useState(false);
-  const { setHumanInput } = useStore();
+  const { setHumanInput, fetchTasks, activeProjectId } = useStore();
+  const { t } = useTranslation();
 
   const handleSend = async () => {
     if (!response.trim()) return;
@@ -21,7 +23,11 @@ export default function HumanInTheLoop({ taskId, prompt }: Props) {
       await tasksApi.humanResponse(taskId, response.trim());
       setHumanInput(taskId, null);
       setResponse('');
-      toast.success('응답을 전송했습니다');
+      toast.success(t('hitl.responseSent'));
+      // Fetch tasks to show the new follow-up task immediately
+      if (activeProjectId) {
+        fetchTasks(activeProjectId);
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -34,7 +40,7 @@ export default function HumanInTheLoop({ taskId, prompt }: Props) {
       {/* Header */}
       <div className="px-5 py-3 border-b border-purple-100 dark:border-purple-800/50 flex items-center gap-2">
         <MessageSquare size={13} className="text-purple-500 dark:text-purple-400" />
-        <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">응답 필요</span>
+        <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">{t('hitl.inputNeeded')}</span>
       </div>
 
       {/* Prompt */}
@@ -48,7 +54,7 @@ export default function HumanInTheLoop({ taskId, prompt }: Props) {
         <div className="flex gap-2">
           <input
             className="input flex-1 text-sm"
-            placeholder="응답 입력... (예: y, yes, allow)"
+            placeholder={t('hitl.inputPlaceholder')}
             value={response}
             onChange={(e) => setResponse(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -61,7 +67,7 @@ export default function HumanInTheLoop({ taskId, prompt }: Props) {
             className="btn-primary inline-flex items-center gap-1.5 shrink-0"
           >
             <Send size={13} />
-            전송
+            {t('hitl.send')}
           </button>
         </div>
       </div>

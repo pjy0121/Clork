@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { ChevronRight, PanelLeftOpen } from 'lucide-react';
 import { useStore } from './store';
+import { useTranslation } from 'react-i18next';
 import { getSocket } from './socket';
 import Header from './components/Header';
 import SessionView from './components/SessionView';
@@ -15,6 +16,7 @@ import type { Session, Task, TaskEvent, ClaudeUsage } from './types';
 import UsageModal from './components/UsageModal';
 
 export default function App() {
+  const { t } = useTranslation();
   const theme = useStore((s) => s.theme);
   const activeProjectId = useStore((s) => s.activeProjectId);
   const activeSessionId = useStore((s) => s.activeSessionId);
@@ -119,6 +121,21 @@ export default function App() {
       useStore.getState().setHumanInput(data.taskId, data.prompt);
     });
 
+    socket.on('task:humanInputCleared', (data: { taskId: string; sessionId: string }) => {
+      console.log('[Socket] task:humanInputCleared', data.taskId);
+      useStore.getState().setHumanInput(data.taskId, null);
+    });
+
+    socket.on('task:created', (data: { task: Task; sessionId: string; projectId: string }) => {
+      console.log('[Socket] task:created', data.task.id);
+      useStore.getState().upsertTaskLocal(data.task);
+      // Also re-fetch tasks to keep list in sync
+      const projectId = useStore.getState().activeProjectId;
+      if (projectId) {
+        useStore.getState().fetchTasks(projectId);
+      }
+    });
+
     socket.on('session:updated', (session: Session) => {
       console.log('[Socket] session:updated', session.id, session.status);
       useStore.getState().updateSessionLocal(session);
@@ -159,6 +176,8 @@ export default function App() {
       socket.off('task:failed');
       socket.off('task:aborted');
       socket.off('task:humanInput');
+      socket.off('task:humanInputCleared');
+      socket.off('task:created');
       socket.off('session:updated');
       socket.off('usage:updated');
       socket.off('connect');
@@ -181,15 +200,14 @@ export default function App() {
   const toggleSidebar = useStore((s) => s.toggleSidebar);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-[#111936] text-slate-900 dark:text-[#d7dcec] transition-colors">
       <Header />
       <div className="flex flex-1 overflow-hidden relative">
         <div
-          className={`flex-none flex flex-col h-full transition-all duration-300 ease-out ${
-            sidebarOpen
-              ? 'w-[22rem] min-w-[20rem] max-w-[24rem] md:w-[22rem] md:min-w-[20rem] max-md:w-[19rem] max-md:min-w-[18rem] border-r border-gray-200/80 dark:border-gray-700/80 overflow-visible'
-              : 'w-0 min-w-0 max-w-0 border-r-0 overflow-hidden'
-          }`}
+          className={`flex-none flex flex-col h-full transition-all duration-300 ease-out ${sidebarOpen
+            ? 'w-[22rem] min-w-[20rem] max-w-[24rem] md:w-[22rem] md:min-w-[20rem] max-md:w-[19rem] max-md:min-w-[18rem] border-r border-slate-200 dark:border-[#8492c4]/10 overflow-visible'
+            : 'w-0 min-w-0 max-w-0 border-r-0 overflow-hidden'
+            }`}
         >
           <UnifiedSidebar />
         </div>
@@ -198,8 +216,8 @@ export default function App() {
         {!sidebarOpen && (
           <button
             onClick={toggleSidebar}
-            className="absolute top-1/2 -translate-y-1/2 left-0 z-50 w-7 h-16 flex items-center justify-center bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-r-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all shadow-sm border border-l-0 border-gray-200 dark:border-gray-800 group"
-            title="사이드바 열기"
+            className="absolute top-1/2 -translate-y-1/2 left-0 z-50 w-7 h-16 flex items-center justify-center bg-white dark:bg-[#1a223f] hover:bg-slate-100 dark:bg-[#212946] rounded-r-xl text-slate-500 dark:text-[#8492c4] hover:text-white transition-all shadow-md border border-l-0 border-slate-300 dark:border-[#8492c4]/20 group"
+            title="Open Sidebar"
           >
             <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
           </button>
@@ -211,7 +229,7 @@ export default function App() {
           ) : activeProjectId ? (
             <ProjectView />
           ) : (
-            <EmptyState message="프로젝트를 선택하거나 새 프로젝트를 만들어주세요" />
+            <EmptyState message={t('app.selectProject')} />
           )}
         </main>
       </div>
@@ -231,15 +249,16 @@ export default function App() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-      <div className="text-center max-w-xs">
-        <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-900/40 flex items-center justify-center">
-          <svg className="w-7 h-7 text-primary-400 dark:text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="h-full flex items-center justify-center bg-transparent">
+      <div className="text-center max-w-sm w-full p-10 dashboard-panel mx-4">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-inner">
+          <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">{message}</p>
+        <h3 className="text-xl font-bold text-white mb-2">Welcome to Clork</h3>
+        <p className="text-sm text-slate-500 dark:text-[#8492c4] font-medium leading-relaxed">{message}</p>
       </div>
     </div>
   );

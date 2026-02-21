@@ -3,6 +3,7 @@ import { X, Trash2, Save, FolderOpen, Shield, Cpu } from 'lucide-react';
 import { useStore } from '../store';
 import toast from 'react-hot-toast';
 import ConfirmModal from './ConfirmModal';
+import { useTranslation } from 'react-i18next';
 
 const MODELS = [
   { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
@@ -12,9 +13,9 @@ const MODELS = [
 ];
 
 const PERMISSIONS = [
-  { value: 'plan', label: '읽기 전용 (Plan)', desc: '파일 읽기만 허용' },
-  { value: 'default', label: '기본 (Default)', desc: '권한 요청 시 사용자에게 확인' },
-  { value: 'full', label: '전체 허용 (Full)', desc: '모든 권한 자동 승인 (주의!)' },
+  { value: 'plan', labelKey: 'sidebar.readonly', descKey: 'projects.planDesc' },
+  { value: 'default', labelKey: 'sidebar.default', descKey: 'projects.defaultDesc' },
+  { value: 'full', labelKey: 'sidebar.full', descKey: 'projects.fullDesc' },
 ];
 
 export default function ProjectSettingsModal() {
@@ -26,6 +27,7 @@ export default function ProjectSettingsModal() {
     updateProject,
     deleteProject,
   } = useStore();
+  const { t } = useTranslation();
 
   const project = projects.find((p) => p.id === activeProjectId);
 
@@ -54,7 +56,7 @@ export default function ProjectSettingsModal() {
         defaultModel,
         permissionMode: permissionMode as any,
       });
-      toast.success('프로젝트 설정이 저장되었습니다');
+      toast.success(t('projects.saveSuccess'));
       setProjectSettingsOpen(false);
     } catch (err: any) {
       toast.error(err.message);
@@ -65,7 +67,7 @@ export default function ProjectSettingsModal() {
     try {
       await deleteProject(project.id);
       setProjectSettingsOpen(false);
-      toast.success('프로젝트가 삭제되었습니다');
+      toast.success(t('projects.deleteSuccess'));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -78,11 +80,11 @@ export default function ProjectSettingsModal() {
         onClick={() => setProjectSettingsOpen(false)}
       >
         <div
-          className="card p-7 w-full max-w-xl mx-4 animate-fade-in"
+          className="dashboard-panel p-7 w-full max-w-xl mx-4 animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-semibold">프로젝트 설정</h2>
+            <h2 className="text-base font-semibold">{t('projects.settings')}</h2>
             <button onClick={() => setProjectSettingsOpen(false)} className="btn-icon">
               <X size={16} />
             </button>
@@ -91,7 +93,7 @@ export default function ProjectSettingsModal() {
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="label">프로젝트 이름</label>
+              <label className="label">{t('sidebar.projectName')}</label>
               <input
                 className="input"
                 value={name}
@@ -103,7 +105,7 @@ export default function ProjectSettingsModal() {
             <div>
               <label className="label flex items-center gap-1.5">
                 <FolderOpen size={13} />
-                루트 디렉토리
+                {t('sidebar.rootDirectory')}
               </label>
               <input
                 className="input font-mono text-xs"
@@ -116,7 +118,7 @@ export default function ProjectSettingsModal() {
             <div>
               <label className="label flex items-center gap-1.5">
                 <Cpu size={13} />
-                기본 모델
+                {t('sidebar.defaultModel')}
               </label>
               <select
                 className="input"
@@ -135,17 +137,16 @@ export default function ProjectSettingsModal() {
             <div>
               <label className="label flex items-center gap-1.5">
                 <Shield size={13} />
-                권한 모드
+                {t('sidebar.permissionMode')}
               </label>
               <div className="space-y-2">
                 {PERMISSIONS.map((p) => (
                   <label
                     key={p.value}
-                    className={`flex items-start gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all ${
-                      permissionMode === p.value
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/15'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
+                    className={`flex items-start gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all ${permissionMode === p.value
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/15'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
                   >
                     <input
                       type="radio"
@@ -156,8 +157,8 @@ export default function ProjectSettingsModal() {
                       className="mt-0.5 accent-primary-600"
                     />
                     <div>
-                      <div className="text-sm font-medium">{p.label}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.desc}</div>
+                      <div className="text-sm font-medium">{t(p.labelKey)}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t(p.descKey)}</div>
                     </div>
                   </label>
                 ))}
@@ -172,15 +173,15 @@ export default function ProjectSettingsModal() {
               className="btn-danger inline-flex items-center gap-1.5"
             >
               <Trash2 size={13} />
-              프로젝트 삭제
+              {t('sidebar.deleteProject')}
             </button>
             <div className="flex gap-2">
               <button onClick={() => setProjectSettingsOpen(false)} className="btn-secondary">
-                취소
+                {t('common.cancel')}
               </button>
               <button onClick={handleSave} className="btn-primary inline-flex items-center gap-1.5">
                 <Save size={13} />
-                저장
+                {t('common.save')}
               </button>
             </div>
           </div>
@@ -191,11 +192,11 @@ export default function ProjectSettingsModal() {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="프로젝트 삭제"
-        message={`프로젝트 "${project.name}"을(를) 삭제하시겠습니까? 모든 세션과 작업이 삭제됩니다.`}
+        title={t('sidebar.deleteProject')}
+        message={t('sidebar.deleteProjectMsg', { name: project.name })}
         type="danger"
-        confirmText="삭제"
-        cancelText="취소"
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
       />
     </>
   );

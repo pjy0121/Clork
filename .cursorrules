@@ -11,3 +11,4 @@ See CLAUDE.md for full project rules and architecture.
 - Types: `backend/src/types.ts` ↔ `frontend/src/types.ts` — keep in sync
 - All DB queries use prepared statements (better-sqlite3)
 - State management through Zustand store only
+- Localization: Always use `t()` from `useTranslation` for UI text. Standardize English to Sentence case (except buttons/titles in Title Case).

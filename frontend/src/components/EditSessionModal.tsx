@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { Session } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface EditSessionModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface EditSessionModalProps {
 }
 
 const AVAILABLE_MODELS = [
-  { value: '', label: '프로젝트 기본 모델' },
+  { value: '', labelKey: 'sidebar.projectDefaultModel' },
   { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
   { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
   { value: 'claude-haiku-3-5-20241022', label: 'Claude Haiku 3.5' },
@@ -22,6 +23,7 @@ export default function EditSessionModal({
   session,
   onSave,
 }: EditSessionModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [model, setModel] = useState('');
 
@@ -49,29 +51,29 @@ export default function EditSessionModal({
       onClick={onClose}
     >
       <div
-        className="card p-7 w-full max-w-md mx-4 animate-fade-in"
+        className="dashboard-panel p-7 w-full max-w-md mx-4 animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold">세션 수정</h2>
+          <h2 className="text-base font-semibold">{t('sidebar.editSession')}</h2>
           <button onClick={onClose} className="btn-icon">
             <X size={16} />
           </button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="label">세션 이름</label>
+            <label className="label">{t('sidebar.sessionName')}</label>
             <input
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="세션 이름"
+              placeholder={t('sidebar.sessionName')}
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
             />
           </div>
           <div>
-            <label className="label">모델</label>
+            <label className="label">{t('projects.model')}</label>
             <select
               className="input"
               value={model}
@@ -79,20 +81,20 @@ export default function EditSessionModal({
             >
               {AVAILABLE_MODELS.map((m) => (
                 <option key={m.value} value={m.value}>
-                  {m.label}
+                  {m.labelKey ? t(m.labelKey) : m.label}
                 </option>
               ))}
             </select>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className="btn-secondary">취소</button>
+            <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button
               onClick={handleSave}
               disabled={!name.trim()}
               className="btn-primary inline-flex items-center gap-1.5"
             >
               <Save size={13} />
-              저장
+              {t('common.save')}
             </button>
           </div>
         </div>

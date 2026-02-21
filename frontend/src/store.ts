@@ -7,6 +7,10 @@ interface AppState {
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
 
+  // ===== Language =====
+  language: 'en' | 'ko';
+  setLanguage: (l: 'en' | 'ko') => void;
+
   // ===== Claude Status =====
   claudeInstalled: boolean;
   claudeLoggedIn: boolean;
@@ -105,15 +109,23 @@ const setLocalStorage = (key: string, value: any) => {
 
 export const useStore = create<AppState>((set, get) => ({
   // ===== Theme =====
-  theme: 'dark',
+  theme: getLocalStorage('theme', 'dark'),
   setTheme: (t) => {
     set({ theme: t });
+    setLocalStorage('theme', t);
     settingsApi.update({ theme: t }).catch(() => { });
     if (t === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+  },
+
+  // ===== Language =====
+  language: getLocalStorage('language', 'ko'),
+  setLanguage: (l) => {
+    set({ language: l });
+    setLocalStorage('language', l);
   },
 
   // ===== Claude Status =====

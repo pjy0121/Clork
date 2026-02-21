@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { X, RefreshCw, Crown, Zap, Activity, Radio } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import { settingsApi } from '../api';
 import type { RateLimitEntry } from '../types';
@@ -17,6 +18,7 @@ export default function UsageModal() {
   const setUsageModalOpen = useStore((s) => s.setUsageModalOpen);
   const claudeUsage = useStore((s) => s.claudeUsage);
   const fetchClaudeUsage = useStore((s) => s.fetchClaudeUsage);
+  const { t, i18n } = useTranslation();
 
   const [now, setNow] = useState(Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -62,7 +64,7 @@ export default function UsageModal() {
   const otherLimits = rateLimits.filter((r) => !knownTypes.has(r.rateLimitType));
 
   const timeSinceUpdate = lastUpdatedAt
-    ? formatRelativeTime(new Date(lastUpdatedAt).getTime(), now)
+    ? formatRelativeTime(new Date(lastUpdatedAt).getTime(), now, t)
     : null;
 
   const subscriptionLabel = getSubscriptionLabel(account?.subscriptionType);
@@ -80,12 +82,12 @@ export default function UsageModal() {
         {/* ===== Header ===== */}
         <div className="px-6 pt-6 pb-1 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">사용량</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('usage.title')}</h1>
             {account?.subscriptionType && (
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
                 ${account.subscriptionType === 'max' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' :
                   account.subscriptionType === 'pro' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
-                  'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+                    'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 <Crown size={11} />
                 {subscriptionLabel}
               </span>
@@ -120,35 +122,43 @@ export default function UsageModal() {
           {/* ────── 플랜 사용량 한도 ────── */}
           <section className="mt-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800 pb-2.5">
-              플랜 사용량 한도
+              {t('usage.limits')}
             </h2>
             <div className="mt-5 space-y-5.5">
               {/* 현재 세션 (five_hour) */}
               <RateLimitRow
-                label="현재 세션"
-                sublabel="5시간"
+                label={t('usage.fiveHour')}
+                sublabel="5h"
                 entry={sessionLimit}
                 now={now}
+                rateLimitType="five_hour"
+                t={t}
               />
               {/* 주간 한도 (seven_day) */}
               <RateLimitRow
-                label="주간 한도"
+                label={t('usage.sevenDay')}
                 entry={weeklyLimit}
                 now={now}
+                rateLimitType="seven_day"
+                t={t}
               />
               {/* Sonnet 한도 (seven_day_sonnet) */}
               <RateLimitRow
-                label="Sonnet 한도"
+                label={t('usage.sonnetLimit')}
                 entry={sonnetLimit}
                 now={now}
+                rateLimitType="seven_day_sonnet"
+                t={t}
               />
               {/* Other limits */}
               {otherLimits.map((entry) => (
                 <RateLimitRow
                   key={entry.rateLimitType}
-                  label={formatRateLimitLabel(entry.rateLimitType)}
+                  label={formatRateLimitLabel(entry.rateLimitType, t)}
                   entry={entry}
                   now={now}
+                  rateLimitType={entry.rateLimitType}
+                  t={t}
                 />
               ))}
             </div>
@@ -158,9 +168,9 @@ export default function UsageModal() {
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
               <Radio size={10} className="text-green-500 animate-pulse" />
-              <span>마지막 업데이트: {timeSinceUpdate ?? '없음'}</span>
+              <span>{t('usage.lastUpdated', { time: timeSinceUpdate ?? '—' })}</span>
               <span className="text-gray-300 dark:text-gray-600">·</span>
-              <span>30초마다 자동 갱신</span>
+              <span>{t('usage.autoRefresh')}</span>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); handleForceRefresh(); }}
@@ -168,33 +178,37 @@ export default function UsageModal() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400
                          hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Claude API를 호출하여 사용량을 즉시 확인합니다"
+              title={t('usage.checkNowTitle')}
             >
               <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
-              {isRefreshing ? '확인 중...' : '지금 확인'}
+              {isRefreshing ? t('usage.checking') : t('usage.checkNow')}
             </button>
           </div>
 
           {/* ────── 추가 사용량 ────── */}
           {overage && overage.overageStatus !== 'unknown' && (
             <section className="mt-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800 pb-2.5">
-                추가 사용량
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800 pb-2.5">
+                {t('usage.additionalUsage')}
               </h2>
               <div className="mt-4">
                 {!overage.isUsingOverage ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    한도에 도달했을 때 Claude를 계속 사용하려면 추가 사용량을 활성화하세요.
+                    {t('usage.additionalUsageDesc')}
                     {overage.overageDisabledReason && (
                       <span className="block mt-1 text-xs text-gray-400">
-                        비활성 사유: {overage.overageDisabledReason === 'org_level_disabled' ? '조직 레벨에서 비활성됨' : overage.overageDisabledReason}
+                        {t('usage.inactiveReason', {
+                          reason: overage.overageDisabledReason === 'org_level_disabled'
+                            ? t('usage.orgDisabled')
+                            : overage.overageDisabledReason
+                        })}
                       </span>
                     )}
                   </p>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">추가 사용량</span>
-                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">활성</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('usage.additionalUsage')}</span>
+                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">{t('usage.active')}</span>
                   </div>
                 )}
               </div>
@@ -204,19 +218,19 @@ export default function UsageModal() {
           {/* ────── Claude Code 활동 (from local stats-cache) ────── */}
           {localStats && localStats.totalMessages > 0 && (
             <section className="mt-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800 pb-2.5 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800 pb-2.5 flex items-center gap-2">
                 <Activity size={16} />
-                Claude Code 활동
+                {t('usage.claudeActivity')}
               </h2>
               <div className="mt-4 space-y-4">
                 {/* Stats grid */}
                 <div className="grid grid-cols-3 gap-3">
-                  <StatItem label="총 세션" value={`${localStats.totalSessions}개`} />
-                  <StatItem label="총 메시지" value={formatNumber(localStats.totalMessages)} />
+                  <StatItem label={t('usage.totalSessions')} value={`${localStats.totalSessions}`} />
+                  <StatItem label={t('usage.totalMessages')} value={formatNumber(localStats.totalMessages)} />
                   <StatItem
-                    label="사용 시작"
+                    label={t('usage.usageStart')}
                     value={localStats.firstSessionDate
-                      ? new Date(localStats.firstSessionDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+                      ? new Date(localStats.firstSessionDate).toLocaleDateString(i18n.language === 'ko' ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' })
                       : '-'}
                   />
                 </div>
@@ -224,7 +238,7 @@ export default function UsageModal() {
                 {/* Model usage */}
                 {Object.keys(localStats.modelUsage).length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">모델별 토큰 사용량</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('usage.modelTokenUsage')}</p>
                     <div className="space-y-2.5">
                       {Object.entries(localStats.modelUsage).map(([model, stats]) => {
                         const total = stats.inputTokens + stats.outputTokens;
@@ -246,7 +260,7 @@ export default function UsageModal() {
                 {/* Daily activity chart (simple bar) */}
                 {localStats.dailyActivity.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">최근 활동</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('usage.recentActivity')}</p>
                     <div className="flex items-end gap-1 h-16">
                       {localStats.dailyActivity.map((day) => {
                         const maxMsg = Math.max(...localStats.dailyActivity.map(d => d.messageCount), 1);
@@ -256,7 +270,7 @@ export default function UsageModal() {
                             key={day.date}
                             className="flex-1 bg-blue-400 dark:bg-blue-500 rounded-t-sm transition-all hover:bg-blue-500 dark:hover:bg-blue-400"
                             style={{ height: `${height}%` }}
-                            title={`${day.date}: ${day.messageCount}개 메시지, ${day.sessionCount}개 세션`}
+                            title={`${day.date}: ${t('usage.messageCount', { count: day.messageCount })}, ${t('usage.sessionCount', { count: day.sessionCount })}`}
                           />
                         );
                       })}
@@ -279,7 +293,7 @@ export default function UsageModal() {
           <section className="mt-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800 pb-2.5 flex items-center gap-2">
               <Zap size={16} />
-              Clork 사용 현황
+              {t('usage.clorkUsage')}
             </h2>
             <div className="mt-4 space-y-4">
               {clorkStats && clorkStats.taskCount > 0 ? (
@@ -291,7 +305,7 @@ export default function UsageModal() {
                         <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
                           US${clorkStats.totalCostUsd.toFixed(2)}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">사용</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">{t('usage.used')}</span>
                       </div>
                     </div>
                     <div className="w-full h-2.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
@@ -303,19 +317,19 @@ export default function UsageModal() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
-                    <StatItem label="실행 Task" value={`${clorkStats.taskCount}건`} />
-                    <StatItem label="성공" value={`${clorkStats.completedTasks}건`} accent="text-green-600 dark:text-green-400" />
-                    <StatItem label="실패/중단" value={`${clorkStats.failedTasks}건`} accent={clorkStats.failedTasks > 0 ? 'text-red-600 dark:text-red-400' : undefined} />
+                    <StatItem label={t('usage.tasksCount')} value={`${clorkStats.taskCount}`} />
+                    <StatItem label={t('usage.success')} value={`${clorkStats.completedTasks}`} accent="text-green-600 dark:text-green-400" />
+                    <StatItem label={t('usage.failedAborted')} value={`${clorkStats.failedTasks}`} accent={clorkStats.failedTasks > 0 ? 'text-red-600 dark:text-red-400' : undefined} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <StatItem label="총 실행 시간" value={formatDuration(clorkStats.totalDurationMs)} />
-                    <StatItem label="평균 Task 비용" value={clorkStats.taskCount > 0 ? `$${(clorkStats.totalCostUsd / clorkStats.taskCount).toFixed(4)}` : '-'} />
+                    <StatItem label={t('usage.totalExecutionTime')} value={formatDuration(clorkStats.totalDurationMs, t)} />
+                    <StatItem label={t('usage.avgTaskCost')} value={clorkStats.taskCount > 0 ? `$${(clorkStats.totalCostUsd / clorkStats.taskCount).toFixed(4)}` : '-'} />
                   </div>
 
                   {/* Recent tasks */}
                   {clorkStats.recentTasks.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">최근 Task 비용</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('usage.recentTaskCosts')}</p>
                       <div className="space-y-1.5 max-h-36 overflow-y-auto scrollbar-thin">
                         {clorkStats.recentTasks.map((task, i) => (
                           <div
@@ -328,7 +342,7 @@ export default function UsageModal() {
                               <span className="font-mono text-gray-500 dark:text-gray-400">
                                 {task.taskId.substring(0, 8)}…
                               </span>
-                              <span className="text-gray-400 tabular-nums">{formatDuration(task.durationMs)}</span>
+                              <span className="text-gray-400 tabular-nums">{formatDuration(task.durationMs, t)}</span>
                             </div>
                             <span className="font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
                               ${task.costUsd.toFixed(4)}
@@ -342,10 +356,10 @@ export default function UsageModal() {
               ) : (
                 <div className="text-center py-6">
                   <p className="text-sm text-gray-400 dark:text-gray-500">
-                    아직 실행된 Task가 없습니다.
+                    {t('usage.noTasks')}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    Task를 실행하면 비용과 통계가 여기에 표시됩니다.
+                    {t('usage.tasksPrompt')}
                   </p>
                 </div>
               )}
@@ -355,7 +369,7 @@ export default function UsageModal() {
           {/* Info footer */}
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
             <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
-              사용량 데이터는 Claude Code CLI를 통해 Anthropic API에서 실시간으로 조회됩니다.
+              {t('usage.footerNote')}
             </p>
           </div>
         </div>
@@ -370,11 +384,15 @@ function RateLimitRow({
   sublabel,
   entry,
   now,
+  rateLimitType,
+  t,
 }: {
   label: string;
   sublabel?: string;
   entry: RateLimitEntry | null;
   now: number;
+  rateLimitType?: string;
+  t: any;
 }) {
   if (!entry) {
     return (
@@ -395,7 +413,7 @@ function RateLimitRow({
 
   const isLimited = entry.status === 'limited' || entry.status === 'rejected';
   const pct = entry.utilization;
-  const resetText = entry.resetsAt ? formatResetTime(entry.resetsAt, now) : null;
+  const resetText = entry.resetsAt ? formatResetTime(entry.resetsAt, now, t, rateLimitType) : null;
 
   // Determine effective percentage for display
   const effectivePct = pct !== null ? pct : (isLimited ? 100 : null);
@@ -417,12 +435,12 @@ function RateLimitRow({
         <span className="text-base text-gray-600 dark:text-gray-300 font-medium tabular-nums">
           {effectivePct !== null ? (
             <span className={isLimited ? 'text-red-500 dark:text-red-400' : ''}>
-              {Math.round(effectivePct)}% 사용됨
+              {t('usage.usedPct', { count: Math.round(effectivePct) })}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${isLimited ? 'bg-red-500' : 'bg-green-500'}`} />
-              {isLimited ? '한도 초과' : '사용 가능'}
+              {isLimited ? t('usage.overLimit') : t('usage.available')}
             </span>
           )}
         </span>
@@ -459,43 +477,57 @@ function StatItem({ label, value, accent }: { label: string; value: string; acce
 
 /* ===== Helpers ===== */
 
-function formatResetTime(resetsAt: number, now: number): string {
+function formatResetTime(resetsAt: number, now: number, t: any, rateLimitType?: string): string {
   const diff = resetsAt - now / 1000;
-  if (diff <= 0) return '갱신됨';
+  if (diff <= 0) return '—';
+
+  const isWeekly = rateLimitType === 'seven_day'
+    || rateLimitType === 'seven_day_sonnet'
+    || rateLimitType === 'seven_day_opus';
+
+  // 주간 한도: 절대 시각 표시
+  if (isWeekly) {
+    const resetDate = new Date(resetsAt * 1000);
+    const dayName = resetDate.toLocaleDateString(t('common.language') === 'ko' ? 'ko-KR' : 'en-US', { weekday: 'long' });
+    const time = resetDate.toLocaleTimeString(t('common.language') === 'ko' ? 'ko-KR' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return t('usage.resetsAt', { time: `${dayName} ${time}` });
+  }
+
+  // 세션(5h) 등 단기 한도: 카운트다운 표시
   const hours = Math.floor(diff / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
-  if (hours > 0) return `${hours}시간 ${minutes}분 후 재설정`;
-  return `${minutes}분 후 재설정`;
+  const timeStr = hours > 0
+    ? `${hours}${t('common.hourShort')} ${minutes}${t('common.minShort')}`
+    : `${minutes}${t('common.minShort')}`;
+  return t('usage.resetsIn', { time: timeStr });
 }
 
-function formatRelativeTime(timestamp: number, now: number): string {
+function formatRelativeTime(timestamp: number, now: number, t: any): string {
   const diff = (now - timestamp) / 1000;
-  if (diff < 5) return '방금 전';
-  if (diff < 60) return `${Math.floor(diff)}초 전`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  return `${Math.floor(diff / 3600)}시간 전`;
+  if (diff < 5) return t('usage.justNow');
+  if (diff < 60) return t('usage.secsAgo', { count: Math.floor(diff) });
+  if (diff < 3600) return t('usage.minsAgo', { count: Math.floor(diff / 60) });
+  return t('usage.hoursAgo', { count: Math.floor(diff / 3600) });
 }
 
-function formatDuration(ms: number): string {
+function formatDuration(ms: number, t: any): string {
   if (ms < 1000) return `${ms}ms`;
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}초`;
+  if (seconds < 60) return `${seconds}${t('common.secShort')}`;
   const minutes = Math.floor(seconds / 60);
   const remainSecs = seconds % 60;
-  if (minutes < 60) return `${minutes}분 ${remainSecs}초`;
+  if (minutes < 60) return `${minutes}${t('common.minShort')} ${remainSecs}${t('common.secShort')}`;
   const hours = Math.floor(minutes / 60);
   const remainMins = minutes % 60;
-  return `${hours}시간 ${remainMins}분`;
+  return `${hours}${t('common.hourShort')} ${remainMins}${t('common.minShort')}`;
 }
 
-function formatRateLimitLabel(type: string): string {
+function formatRateLimitLabel(type: string, t: any): string {
   switch (type) {
-    case 'five_hour': return '현재 세션';
-    case 'seven_day_sonnet': return 'Sonnet 한도';
-    case 'seven_day_opus': return 'Opus 한도';
-    case 'seven_day': return '주간 한도';
-    case 'weekly': return '주간 한도';
-    case 'daily': return '일간 한도';
+    case 'five_hour': return t('usage.fiveHour');
+    case 'seven_day_sonnet': return t('usage.sonnetLimit');
+    case 'seven_day': return t('usage.sevenDay');
+    case 'weekly': return t('usage.sevenDay');
     default: return type;
   }
 }

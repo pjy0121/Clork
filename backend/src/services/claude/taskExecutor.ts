@@ -19,6 +19,89 @@ export function looksLikePermissionPrompt(text: string): boolean {
   return patterns.some((p) => p.test(text));
 }
 
+/**
+ * Strip code blocks (``` ... ```) from text to avoid false positives
+ * from question marks or patterns inside code.
+ */
+function stripCodeBlocks(text: string): string {
+  return text.replace(/```[\s\S]*?```/g, '');
+}
+
+/** Polite closing patterns that should NOT trigger HITL */
+const POLITE_CLOSING_PATTERNS = [
+  /궁금한\s*점이\s*있으시면/,
+  /도움이\s*필요하시면/,
+  /다른\s*질문이\s*있으면/,
+  /추가\s*질문이\s*있으시면/,
+  /문의.*있으시면/,
+  /필요한.*있으시면/,
+  /if you have any questions/i,
+  /feel free to ask/i,
+  /let me know if you need/i,
+  /don'?t hesitate to ask/i,
+];
+
+/** Korean question patterns that indicate Claude is asking the user */
+const KOREAN_QUESTION_PATTERNS = [
+  /할까요\s*\?/,
+  /하시겠습니까\s*\?/,
+  /선택해\s*주세요/,
+  /선택해주세요/,
+  /알려\s*주세요/,
+  /알려주세요/,
+  /진행할까요\s*\?/,
+  /원하시나요\s*\?/,
+  /괜찮을까요\s*\?/,
+  /될까요\s*\?/,
+  /드릴까요\s*\?/,
+  /줄까요\s*\?/,
+  /어떤.*좋을까요\s*\?/,
+  /어떻게.*할까요\s*\?/,
+  /맞을까요\s*\?/,
+  /싶으신가요\s*\?/,
+];
+
+/** English question patterns that indicate Claude is asking the user */
+const ENGLISH_QUESTION_PATTERNS = [
+  /\bshould I\b/i,
+  /\bwould you like\b/i,
+  /\bwhich (approach|option|method|way|one)\b/i,
+  /\bdo you want\b/i,
+  /\bplease (choose|select|pick|decide)\b/i,
+  /\blet me know\b/i,
+  /\bwhat would you prefer\b/i,
+  /\bshall I\b/i,
+  /\bwould you prefer\b/i,
+];
+
+/**
+ * Detect if Claude's result text contains a question directed at the user.
+ * Used to trigger Human-in-the-Loop flow when running in non-interactive mode (-p).
+ */
+export function detectQuestionInResult(text: string): boolean {
+  if (!text || !text.trim()) return false;
+
+  // Strip code blocks to avoid false positives
+  const stripped = stripCodeBlocks(text);
+
+  // Check for polite closing patterns first — these are NOT questions
+  for (const pattern of POLITE_CLOSING_PATTERNS) {
+    if (pattern.test(stripped)) return false;
+  }
+
+  // Check Korean question patterns
+  for (const pattern of KOREAN_QUESTION_PATTERNS) {
+    if (pattern.test(stripped)) return true;
+  }
+
+  // Check English question patterns
+  for (const pattern of ENGLISH_QUESTION_PATTERNS) {
+    if (pattern.test(stripped)) return true;
+  }
+
+  return false;
+}
+
 export class TaskExecutor {
   private processes: Map<string, ChildProcess> = new Map();
   private pollIntervals: Map<string, ReturnType<typeof setInterval>> = new Map();
@@ -61,14 +144,7 @@ export class TaskExecutor {
 
     const fullCmd = `${cmdParts} > "${outFile}" 2>&1`;
 
-    console.log(`\n[TaskExecutor] ========== Starting Task ==========`);
-    console.log(`[TaskExecutor] Task ID: ${taskId}`);
-    console.log(`[TaskExecutor] CWD: ${options.cwd}`);
-    console.log(`[TaskExecutor] Model: ${options.model}`);
-    console.log(`[TaskExecutor] Permission: ${options.permissionMode}`);
-    console.log(`[TaskExecutor] Prompt: ${options.prompt.substring(0, 100)}`);
-    console.log(`[TaskExecutor] Output file: ${outFile}`);
-    console.log(`[TaskExecutor] Command: ${fullCmd.substring(0, 200)}`);
+    console.log(`[TaskExecutor] Starting task ${taskId} (model: ${options.model})`);
 
     let proc: ChildProcess;
     try {
@@ -87,7 +163,6 @@ export class TaskExecutor {
       return;
     }
 
-    console.log(`[TaskExecutor] Process spawned, PID: ${proc.pid}`);
     this.processes.set(taskId, proc);
 
     let lastPos = 0;
@@ -118,7 +193,6 @@ export class TaskExecutor {
           if (!trimmed) continue;
 
           hasReceivedData = true;
-          console.log(`[TaskExecutor] [out] ${trimmed.substring(0, 200)}`);
 
           try {
             const event: ClaudeStreamEvent = JSON.parse(trimmed);
@@ -126,19 +200,16 @@ export class TaskExecutor {
             // Capture session ID
             if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
               sessionId = event.session_id;
-              console.log(`[TaskExecutor] Session ID captured: ${sessionId}`);
             }
 
             // Check for human-in-the-loop
             if (isHumanInputNeeded(event)) {
-              console.log(`[TaskExecutor] Human input needed!`);
               callbacks.onHumanInput(event);
             } else {
               callbacks.onData(event);
             }
           } catch {
             // Non-JSON output (e.g., error messages)
-            console.log(`[TaskExecutor] [raw] ${trimmed.substring(0, 200)}`);
             if (looksLikePermissionPrompt(trimmed)) {
               callbacks.onHumanInput({ type: 'permission_request', text: trimmed });
             } else {
@@ -161,10 +232,7 @@ export class TaskExecutor {
     });
 
     proc.on('close', (code, signal) => {
-      console.log(`\n[TaskExecutor] ========== Task Completed ==========`);
-      console.log(`[TaskExecutor] Task ID: ${taskId}`);
-      console.log(`[TaskExecutor] Exit code: ${code}, Signal: ${signal}`);
-      console.log(`[TaskExecutor] Received data: ${hasReceivedData}`);
+      console.log(`[TaskExecutor] Task ${taskId} exited (code: ${code})`);
 
       // Stop polling and do one final read
       clearInterval(poll);
@@ -206,11 +274,9 @@ export class TaskExecutor {
 
           // Read full file for analysis
           const fullContent = fs.readFileSync(outFile, 'utf-8');
-          console.log(`[TaskExecutor] Total output length: ${fullContent.length}`);
 
           // Check if result event was received
           if (!fullContent.includes('"type":"result"') && !fullContent.includes('"type": "result"')) {
-            console.log(`[TaskExecutor] No result event in output, creating synthetic result`);
             callbacks.onData({
               type: 'result',
               subtype: code === 0 ? 'success' : 'error',
@@ -274,7 +340,6 @@ export class TaskExecutor {
   abort(taskId: string): boolean {
     const proc = this.processes.get(taskId);
     if (proc) {
-      console.log(`[TaskExecutor] Aborting task ${taskId}, PID: ${proc.pid}`);
       if (process.platform === 'win32') {
         try {
           execSync(`taskkill /pid ${proc.pid} /T /F`, { shell: true as any, stdio: 'ignore' });
@@ -295,7 +360,6 @@ export class TaskExecutor {
    * Note: With file redirect approach, stdin is not connected.
    */
   sendInput(taskId: string, input: string): boolean {
-    console.log(`[TaskExecutor] sendInput not supported with file redirect approach`);
     return false;
   }
 

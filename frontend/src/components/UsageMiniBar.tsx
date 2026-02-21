@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import type { RateLimitEntry } from '../types';
 
@@ -11,6 +12,7 @@ export default function UsageMiniBar() {
   const claudeUsage = useStore((s) => s.claudeUsage);
   const setUsageModalOpen = useStore((s) => s.setUsageModalOpen);
   const fetchClaudeUsage = useStore((s) => s.fetchClaudeUsage);
+  const { t, i18n } = useTranslation();
 
   const [now, setNow] = useState(Date.now());
 
@@ -35,17 +37,34 @@ export default function UsageMiniBar() {
   const hasData = rateLimits.length > 0 || taskCount > 0 || !!account?.subscriptionType;
 
   // Earliest reset time across all limits
-  const allResets = [sessionLimit, weeklyLimit, sonnetLimit]
-    .filter((e): e is RateLimitEntry => e !== null && e.resetsAt !== null);
-  const earliestReset = allResets.length > 0
-    ? Math.min(...allResets.map(e => e.resetsAt!))
+  const limitEntries: Array<{ entry: RateLimitEntry; type: string }> = [
+    sessionLimit ? { entry: sessionLimit, type: 'five_hour' } : null,
+    weeklyLimit ? { entry: weeklyLimit, type: 'seven_day' } : null,
+    sonnetLimit ? { entry: sonnetLimit, type: 'seven_day_sonnet' } : null,
+  ].filter((e): e is { entry: RateLimitEntry; type: string } => e !== null && e.entry.resetsAt !== null);
+
+  const earliest = limitEntries.length > 0
+    ? limitEntries.reduce((a, b) => a.entry.resetsAt! < b.entry.resetsAt! ? a : b)
     : null;
 
-  // Reset countdown
+  // Reset text: countdown for session, day+time for weekly
   const getResetText = () => {
-    if (!earliestReset) return null;
-    const diff = earliestReset - now / 1000;
+    if (!earliest) return null;
+    const diff = earliest.entry.resetsAt! - now / 1000;
     if (diff <= 0) return null;
+
+    const isWeekly = earliest.type === 'seven_day'
+      || earliest.type === 'seven_day_sonnet'
+      || earliest.type === 'seven_day_opus';
+
+    if (isWeekly) {
+      const d = new Date(earliest.entry.resetsAt! * 1000);
+      const isKo = i18n.language === 'ko';
+      const day = d.toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { weekday: 'short' });
+      const time = d.toLocaleTimeString(isKo ? 'ko-KR' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return `${day} ${time}`;
+    }
+
     const h = Math.floor(diff / 3600);
     const m = Math.floor((diff % 3600) / 60);
     if (h > 0) return `${h}h ${m}m`;
@@ -71,7 +90,7 @@ export default function UsageMiniBar() {
       className="flex items-center gap-3 px-3 py-1.5 rounded-lg
                  hover:bg-gray-100 dark:hover:bg-gray-800
                  transition-all duration-150 group"
-      title="Claude Code 사용량"
+      title={t('usage.claudeUsageTitle')}
     >
       {/* Subscription badge */}
       {subBadge && (
@@ -82,9 +101,9 @@ export default function UsageMiniBar() {
 
       {/* 3 Mini progress bars: Session / Weekly / Sonnet */}
       <div className="flex items-center gap-2.5">
-        <MiniLimitBar label="세션" entry={sessionLimit} />
-        <MiniLimitBar label="주간" entry={weeklyLimit} />
-        <MiniLimitBar label="Sonnet" entry={sonnetLimit} />
+        <MiniLimitBar label={t('usage.sessionLabel')} entry={sessionLimit} t={t} />
+        <MiniLimitBar label={t('usage.weeklyLabel')} entry={weeklyLimit} t={t} />
+        <MiniLimitBar label="Sonnet" entry={sonnetLimit} t={t} />
       </div>
 
       {/* Cost */}
@@ -103,7 +122,7 @@ export default function UsageMiniBar() {
 
       {/* No data placeholder */}
       {!hasData && (
-        <span className="text-sm text-gray-400 dark:text-gray-500">사용량</span>
+        <span className="text-sm text-gray-400 dark:text-gray-500">{t('usage.noData')}</span>
       )}
     </button>
   );
@@ -113,7 +132,15 @@ export default function UsageMiniBar() {
  * Mini progress bar for a single rate limit type.
  * Shows: label + colored dot + thin bar
  */
-function MiniLimitBar({ label, entry }: { label: string; entry: RateLimitEntry | null }) {
+function MiniLimitBar({
+  label,
+  entry,
+  t
+}: {
+  label: string;
+  entry: RateLimitEntry | null;
+  t: any;
+}) {
   const isLimited = entry?.status === 'limited' || entry?.status === 'rejected';
   const utilization = entry?.utilization;
   const effectivePct = utilization !== null && utilization !== undefined
@@ -136,8 +163,8 @@ function MiniLimitBar({ label, entry }: { label: string; entry: RateLimitEntry |
   return (
     <div className="flex items-center gap-1" title={
       entry
-        ? `${label}: ${effectivePct !== null ? `${Math.round(effectivePct)}% 사용됨` : isLimited ? '한도 초과' : '사용 가능'}`
-        : `${label}: 데이터 없음`
+        ? `${label}: ${effectivePct !== null ? `${Math.round(effectivePct)}% ${t('usage.usedShort')}` : isLimited ? t('usage.overLimit') : t('usage.available')}`
+        : `${label}: ${t('usage.dataNotFound')}`
     }>
       <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 w-8 text-right leading-none">
         {label}
@@ -159,9 +186,8 @@ function MiniLimitBar({ label, entry }: { label: string; entry: RateLimitEntry |
         )}
       </div>
       {effectivePct !== null && (
-        <span className={`text-[10px] tabular-nums font-semibold leading-none ${
-          isLimited ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
-        }`}>
+        <span className={`text-[10px] tabular-nums font-semibold leading-none ${isLimited ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+          }`}>
           {Math.round(effectivePct)}%
         </span>
       )}

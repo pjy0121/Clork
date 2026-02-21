@@ -6,10 +6,22 @@ import type { UsageTracker } from './usageTracker';
 import { CREDENTIALS_PATH } from './localFileReader';
 
 export const USAGE_POLL_INTERVAL_MS = 30_000; // 30 seconds
+/** How many consecutive token failures before we slow down polling */
+const TOKEN_BACKOFF_THRESHOLD = 3;
+/** Slowed-down poll interval when token is unavailable (2 minutes) */
+const BACKOFF_POLL_INTERVAL_MS = 120_000;
+
+export type TokenState = 'available' | 'expired' | 'missing' | 'unknown';
 
 export class UsagePolling {
   private isPollingUsage = false;
   private usagePollTimer: ReturnType<typeof setInterval> | null = null;
+  /** Track token state to only log on transitions */
+  private lastTokenState: TokenState = 'unknown';
+  /** Count consecutive polls with no token — for backoff */
+  private consecutiveTokenFailures = 0;
+  /** Whether we're currently in backoff mode */
+  private isBackoff = false;
 
   constructor(
     private state: UsageState,
@@ -21,8 +33,12 @@ export class UsagePolling {
    * Start periodic usage polling. Called when Socket.IO is set.
    */
   startUsagePolling(): void {
+    // Force-read credentials before first poll so token is available
+    this.state.localFilesLastRead = 0;
+    this.localFileReader.refreshLocalFiles();
+
     // Initial poll after a short delay to let server boot up
-    setTimeout(() => this.pollUsageLive(), 5000);
+    setTimeout(() => this.pollUsageLive(), 3000);
     // Periodic polling
     this.usagePollTimer = setInterval(
       () => this.pollUsageLive(),
@@ -49,14 +65,29 @@ export class UsagePolling {
     if (this.isPollingUsage) return;
     this.isPollingUsage = true;
 
-    console.log(`[UsagePolling] Polling rate limits via API...`);
-
     try {
       // Read OAuth token from credentials file
       const token = this.getOAuthToken();
       if (!token) {
-        console.warn('[UsagePolling] No OAuth token available for rate limit polling');
+        this.consecutiveTokenFailures++;
+
+        // Enter backoff mode after repeated failures
+        if (
+          this.consecutiveTokenFailures >= TOKEN_BACKOFF_THRESHOLD
+          && !this.isBackoff
+        ) {
+          this.switchToBackoff();
+        }
+
+        // Still refresh local files so at least local stats are available
+        this.localFileReader.refreshLocalFiles();
         return;
+      }
+
+      // Token is available — reset failure count and exit backoff if needed
+      this.consecutiveTokenFailures = 0;
+      if (this.isBackoff) {
+        this.switchToNormal();
       }
 
       // Make minimal API call — even 429 returns rate limit headers
@@ -84,12 +115,6 @@ export class UsagePolling {
             resetsAt,
             utilization: util,
           });
-
-          console.log(
-            `[UsagePolling] Rate limit — type: ${type}, status: ${status || 'allowed'}, ` +
-            `utilization: ${util.toFixed(1)}%, ` +
-            `resetsAt: ${resetsAt ? new Date(resetsAt * 1000).toLocaleTimeString() : 'N/A'}`
-          );
         }
       }
 
@@ -123,27 +148,96 @@ export class UsagePolling {
   }
 
   /**
-   * Read OAuth access token from ~/.claude/.credentials.json
+   * Read OAuth access token from ~/.claude/.credentials.json.
+   * Logs only on state transitions to avoid log spam.
    */
   getOAuthToken(): string | null {
     try {
-      if (!fs.existsSync(CREDENTIALS_PATH)) return null;
+      if (!fs.existsSync(CREDENTIALS_PATH)) {
+        this.transitionTokenState('missing');
+        return null;
+      }
       const raw = fs.readFileSync(CREDENTIALS_PATH, 'utf-8');
       const data = JSON.parse(raw);
       const token = data.claudeAiOauth?.accessToken;
-      if (!token) return null;
+      if (!token) {
+        this.transitionTokenState('missing');
+        return null;
+      }
 
       // Check expiry
       const expiresAt = data.claudeAiOauth?.expiresAt;
       if (expiresAt && Date.now() > expiresAt) {
-        console.warn('[UsagePolling] OAuth token expired');
+        this.transitionTokenState('expired');
+        // Force re-read credentials next cycle (CLI may refresh the token file)
+        this.state.localFilesLastRead = 0;
         return null;
       }
 
+      this.transitionTokenState('available');
       return token;
     } catch {
+      this.transitionTokenState('missing');
       return null;
     }
+  }
+
+  /**
+   * Log only when token state changes to reduce noise.
+   */
+  private transitionTokenState(newState: TokenState): void {
+    if (newState === this.lastTokenState) return;
+    const prev = this.lastTokenState;
+    this.lastTokenState = newState;
+
+    switch (newState) {
+      case 'expired':
+        console.warn('[UsagePolling] OAuth token expired — waiting for CLI to refresh');
+        break;
+      case 'missing':
+        console.warn('[UsagePolling] No OAuth token available for rate limit polling');
+        break;
+      case 'available':
+        if (prev !== 'unknown') {
+          console.log('[UsagePolling] OAuth token recovered — resuming API polling');
+        }
+        break;
+    }
+  }
+
+  /**
+   * Switch to slower polling interval when token is repeatedly unavailable.
+   */
+  private switchToBackoff(): void {
+    this.isBackoff = true;
+    if (this.usagePollTimer) {
+      clearInterval(this.usagePollTimer);
+      this.usagePollTimer = setInterval(
+        () => this.pollUsageLive(),
+        BACKOFF_POLL_INTERVAL_MS,
+      );
+    }
+    console.log(
+      `[UsagePolling] No token after ${TOKEN_BACKOFF_THRESHOLD} attempts — ` +
+      `slowing poll to ${BACKOFF_POLL_INTERVAL_MS / 1000}s`
+    );
+  }
+
+  /**
+   * Switch back to normal polling interval when token becomes available.
+   */
+  private switchToNormal(): void {
+    this.isBackoff = false;
+    if (this.usagePollTimer) {
+      clearInterval(this.usagePollTimer);
+      this.usagePollTimer = setInterval(
+        () => this.pollUsageLive(),
+        USAGE_POLL_INTERVAL_MS,
+      );
+    }
+    console.log(
+      `[UsagePolling] Token available — restoring normal poll interval (${USAGE_POLL_INTERVAL_MS / 1000}s)`
+    );
   }
 
   /**

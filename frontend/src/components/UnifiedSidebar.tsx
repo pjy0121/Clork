@@ -36,17 +36,18 @@ import { buildChains, type SessionChain } from '../utils/sessionUtils';
 import toast from 'react-hot-toast';
 import EditSessionModal from './EditSessionModal';
 import ConfirmModal from './ConfirmModal';
+import { useTranslation } from 'react-i18next';
 
-const STATUS_CONFIG: Record<SessionStatus, { icon: any; color: string; label: string }> = {
-  idle: { icon: Circle, color: 'text-gray-400', label: '대기' },
-  queued: { icon: Pause, color: 'text-amber-500', label: '큐 대기' },
-  running: { icon: Loader2, color: 'text-blue-500', label: '실행 중' },
-  completed: { icon: CheckCircle2, color: 'text-green-500', label: '완료' },
-  paused: { icon: Pause, color: 'text-orange-500', label: '일시정지' },
+const STATUS_CONFIG: Record<SessionStatus, { icon: any; color: string; labelKey: string }> = {
+  idle: { icon: Circle, color: 'text-gray-400', labelKey: 'sidebar.status.idle' },
+  queued: { icon: Pause, color: 'text-amber-500', labelKey: 'sidebar.status.queued' },
+  running: { icon: Loader2, color: 'text-blue-500', labelKey: 'sidebar.status.running' },
+  completed: { icon: CheckCircle2, color: 'text-green-500', labelKey: 'sidebar.status.completed' },
+  paused: { icon: Pause, color: 'text-orange-500', labelKey: 'sidebar.status.paused' },
 };
 
 const AVAILABLE_MODELS = [
-  { value: '', label: '프로젝트 기본 모델' },
+  { value: '', labelKey: 'sidebar.projectDefaultModel' },
   { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
   { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
   { value: 'claude-haiku-3-5-20241022', label: 'Claude Haiku 3.5' },
@@ -62,6 +63,7 @@ export default function UnifiedSidebar() {
     startSession, toggleSession, deleteSession, reorderSessions,
     setProjectSettingsOpen, fetchAllSessions, fetchTasks, fetchSessions,
   } = useStore();
+  const { t } = useTranslation();
 
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -100,7 +102,7 @@ export default function UnifiedSidebar() {
   // ===== Handlers =====
   const handleCreateProject = async () => {
     if (!newProjectName.trim() || !newProjectDir.trim()) {
-      toast.error('프로젝트 이름과 디렉토리를 입력해주세요');
+      toast.error(t('sidebar.errorInputTitleDir')); // Note: Added this key to my head, need to ensure it's in JSON
       return;
     }
     try {
@@ -114,7 +116,7 @@ export default function UnifiedSidebar() {
       setNewProjectName('');
       setNewProjectDir('');
       setShowNewProject(false);
-      toast.success('프로젝트가 생성되었습니다');
+      toast.success(t('sidebar.projectCreated'));
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -129,7 +131,7 @@ export default function UnifiedSidebar() {
     if (!showDeleteProjectConfirm) return;
     try {
       await deleteProject(showDeleteProjectConfirm.id);
-      toast.success('프로젝트가 삭제되었습니다');
+      toast.success(t('sidebar.projectDeleted'));
       setShowDeleteProjectConfirm(null);
     } catch (err: any) { toast.error(err.message); }
   };
@@ -154,7 +156,7 @@ export default function UnifiedSidebar() {
       setSelectedProjectForNewSession(null);
       await fetchSessions(selectedProjectForNewSession);
       await fetchTasks(selectedProjectForNewSession);
-      toast.success('세션이 생성되었습니다');
+      toast.success(t('sidebar.sessionCreated'));
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -162,7 +164,7 @@ export default function UnifiedSidebar() {
     e.stopPropagation();
     try {
       await startSession(sessionId);
-      toast.success('세션이 시작되었습니다');
+      toast.success(t('projects.sessionStarted'));
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -184,7 +186,7 @@ export default function UnifiedSidebar() {
     if (!showDeleteSessionConfirm) return;
     try {
       await deleteSession(showDeleteSessionConfirm.id);
-      toast.success('세션이 삭제되었습니다');
+      toast.success(t('sidebar.sessionDeleted'));
       setShowDeleteSessionConfirm(null);
     } catch (err: any) { toast.error(err.message); }
   };
@@ -198,7 +200,7 @@ export default function UnifiedSidebar() {
       await updateSession(parent.id, { nextSessionId: self.nextSessionId || null } as any);
       await updateSession(sessionId, { nextSessionId: null } as any);
       if (self.projectId) await fetchSessions(self.projectId);
-      toast.success('체인에서 분리되었습니다');
+      toast.success(t('projects.unlinked'));
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -280,7 +282,7 @@ export default function UnifiedSidebar() {
       }
       await updateSession(lastInTarget.id, { nextSessionId: draggedId } as any);
       await fetchSessions(draggedSession.projectId);
-      toast.success(`${draggedSession.name}이(가) 체인에 합류했습니다`);
+      toast.success(t('sidebar.joinedChain', { name: draggedSession.name }));
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -291,14 +293,14 @@ export default function UnifiedSidebar() {
   if (!sidebarOpen) return null;
 
   return (
-    <div className="sidebar flex-1 flex flex-col sidebar-enter relative">
+    <div className="sidebar flex-1 flex flex-col sidebar-enter w-80 relative bg-slate-50 dark:bg-[#111936] border-r border-slate-200 dark:border-[#8492c4]/10 group/sidebar transition-all duration-300">
       {/* Collapse Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute top-1/2 -translate-y-1/2 -right-7 z-50 w-7 h-16 flex items-center justify-center bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-r-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all shadow-sm border border-l-0 border-gray-200 dark:border-gray-800 group backdrop-blur"
-        title="사이드바 닫기"
+        className="absolute top-1/2 -translate-y-1/2 -right-6 z-50 w-6 h-16 flex items-center justify-center bg-white dark:bg-[#1a223f] hover:bg-slate-100 dark:bg-[#212946] border border-l-0 border-slate-300 dark:border-[#8492c4]/20 text-slate-500 dark:text-[#8492c4] hover:text-slate-900 dark:text-[#d7dcec] transition-all shadow-md rounded-r-xl"
+        title={t('sidebar.closeSidebar')}
       >
-        <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+        <ChevronLeft size={16} className="transition-transform group-hover/sidebar:-translate-x-1" />
       </button>
 
       {/* Projects and Sessions */}
@@ -311,63 +313,62 @@ export default function UnifiedSidebar() {
             const chains = buildChains(projectSessions);
 
             return (
-              <div key={project.id} className="border-b border-gray-100 dark:border-gray-800/80">
+              <div key={project.id} className="border-b border-white/5">
                 {/* Project Header */}
-                <div className={`group flex items-center h-11 transition-all border-l-2 ${
-                  isActive
-                    ? 'bg-primary-50 dark:bg-primary-900/15 border-primary-500'
-                    : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/40'
-                }`}>
+                <div className={`group flex items-center h-14 transition-all rounded-xl mx-2 my-1 ${isActive
+                  ? 'bg-indigo-500/10 text-indigo-400'
+                  : 'hover:bg-white dark:bg-[#1a223f] text-slate-500 dark:text-[#8492c4] hover:text-slate-900 dark:text-[#d7dcec]'
+                  }`}>
                   <button
                     onClick={() => toggleProjectExpanded(project.id)}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors ml-2 shrink-0"
+                    className="p-2 hover:bg-slate-100 dark:bg-[#212946] rounded-xl transition-colors ml-2 shrink-0"
                   >
                     {isExpanded
-                      ? <ChevronDown size={14} className="text-gray-400" />
-                      : <ChevronRight size={14} className="text-gray-400" />}
+                      ? <ChevronDown size={16} className="text-current" />
+                      : <ChevronRight size={16} className="text-current" />}
                   </button>
                   <div
                     onClick={() => {
                       setActiveProject(project.id);
                       setActiveSession(null);
                     }}
-                    className="flex-1 text-left py-1 px-2 flex items-center gap-2 min-w-0 h-full cursor-pointer"
+                    className="flex-1 text-left py-2 px-2 flex items-center gap-2.5 min-w-0 h-full cursor-pointer"
                   >
-                    <FolderOpen size={14} className={isActive ? 'text-primary-500 shrink-0' : 'text-gray-400 shrink-0'} />
-                    <span className={`text-sm font-medium truncate ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <FolderOpen size={16} className={isActive ? 'text-indigo-400 shrink-0' : 'text-current shrink-0'} />
+                    <span className={`text-sm font-semibold truncate transition-colors ${isActive ? 'text-indigo-400' : 'text-current'}`}>
                       {project.name}
                     </span>
                   </div>
-                  <div className={`flex items-center gap-0.5 pr-2 shrink-0 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <div className={`flex items-center gap-1 pr-3 shrink-0 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                     <button
                       onClick={(e) => { e.stopPropagation(); openNewSessionModal(project.id); }}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                      title="새 세션"
+                      className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                      title={t('sidebar.newSession')}
                     >
-                      <Plus size={13} className="text-gray-500" />
+                      <Plus size={18} className="text-gray-400 hover:text-white" />
                     </button>
                     {isActive && (
                       <button
                         onClick={() => setProjectSettingsOpen(true)}
-                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                        title="프로젝트 설정"
+                        className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                        title={t('common.settings')}
                       >
-                        <Pencil size={12} className="text-gray-500" />
+                        <Pencil size={16} className="text-gray-400 hover:text-white" />
                       </button>
                     )}
                     <button
-                      onClick={(e) => handleDeleteProject(e, project.id)}
-                      className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-500 rounded transition-colors"
-                      title="삭제"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteProject(e, project.id); }}
+                      className="p-2 hover:bg-rose-500/20 text-rose-400 hover:text-rose-500 rounded-xl transition-colors"
+                      title={t('common.delete')}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
 
                 {/* Chains */}
                 {isExpanded && (
-                  <div className="pl-3 pr-2 py-3 space-y-3 bg-gray-50/60 dark:bg-gray-900/30">
+                  <div className="pl-3 pr-2 py-3 space-y-3 bg-slate-50 dark:bg-[#111936] border-y border-slate-200 dark:border-[#8492c4]/10 shadow-inner">
                     {chains.map((chain, chainIdx) => (
                       <ChainCard
                         key={chain.id}
@@ -393,7 +394,7 @@ export default function UnifiedSidebar() {
                       />
                     ))}
                     {projectSessions.length === 0 && (
-                      <div className="text-center py-3 text-xs text-gray-400 dark:text-gray-500">세션이 없습니다</div>
+                      <div className="text-center py-3 text-xs text-gray-400 dark:text-gray-500">{t('sidebar.noSessions')}</div>
                     )}
                   </div>
                 )}
@@ -406,8 +407,8 @@ export default function UnifiedSidebar() {
               const s = sessions.find(ss => ss.id === draggingSessionId);
               if (!s) return null;
               return (
-                <div className="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 shadow-xl ring-2 ring-primary-400 opacity-90">
-                  <span className="text-sm font-medium">{s.name}</span>
+                <div className="px-3 py-2 rounded-none bg-[#06060a] border border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] opacity-90 font-mono text-xs text-white">
+                  {s.name}
                 </div>
               );
             })()}
@@ -415,32 +416,32 @@ export default function UnifiedSidebar() {
         </DndContext>
 
         {projects.length === 0 && (
-          <div className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">프로젝트가 없습니다</div>
+          <div className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">{t('sidebar.noProjects')}</div>
         )}
       </div>
 
       {/* Bottom CTA */}
-      <div className="shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div className="shrink-0 p-4 border-t border-slate-200 dark:border-[#8492c4]/10 bg-slate-50 dark:bg-[#111936]">
         <button
           onClick={() => setShowNewProject(true)}
           className="btn-primary w-full inline-flex items-center justify-center gap-2"
         >
-          <Plus size={14} />
-          새 프로젝트
+          <Plus size={16} />
+          {t('sidebar.newProject')}
         </button>
       </div>
 
       {/* New Project Modal */}
       {showNewProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowNewProject(false)}>
-          <div className="card p-7 w-full max-w-md mx-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-base font-semibold">새 프로젝트</h2>
-              <button onClick={() => setShowNewProject(false)} className="btn-icon"><X size={16} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4" onClick={() => setShowNewProject(false)}>
+          <div className="dashboard-panel p-8 w-full max-w-md mx-4 animate-fade-in shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold text-white tracking-tight">{t('sidebar.newProject')}</h2>
+              <button onClick={() => setShowNewProject(false)} className="btn-icon"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="label">프로젝트 이름</label>
+                <label className="label">{t('sidebar.projectName')}</label>
                 <input
                   className="input"
                   value={newProjectName}
@@ -451,7 +452,7 @@ export default function UnifiedSidebar() {
                 />
               </div>
               <div>
-                <label className="label">루트 디렉토리</label>
+                <label className="label">{t('sidebar.rootDirectory')}</label>
                 <input
                   className="input font-mono text-xs"
                   value={newProjectDir}
@@ -461,7 +462,7 @@ export default function UnifiedSidebar() {
                 />
               </div>
               <div>
-                <label className="label">기본 모델</label>
+                <label className="label">{t('sidebar.defaultModel')}</label>
                 <select className="input" value={newProjectModel} onChange={(e) => setNewProjectModel(e.target.value)}>
                   <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                   <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
@@ -470,16 +471,16 @@ export default function UnifiedSidebar() {
                 </select>
               </div>
               <div>
-                <label className="label">권한 모드</label>
+                <label className="label">{t('sidebar.permissionMode')}</label>
                 <select className="input" value={newProjectPermission} onChange={(e) => setNewProjectPermission(e.target.value)}>
-                  <option value="plan">읽기 전용 (Plan)</option>
-                  <option value="default">기본 (Default)</option>
-                  <option value="full">전체 허용 (Full)</option>
+                  <option value="plan">{t('sidebar.readonly')}</option>
+                  <option value="default">{t('sidebar.default')}</option>
+                  <option value="full">{t('sidebar.full')}</option>
                 </select>
               </div>
-              <div className="flex gap-2 justify-end pt-1">
-                <button onClick={() => setShowNewProject(false)} className="btn-secondary">취소</button>
-                <button onClick={handleCreateProject} className="btn-primary">생성</button>
+              <div className="flex gap-3 justify-end pt-4 mt-2">
+                <button onClick={() => setShowNewProject(false)} className="btn-secondary">{t('common.cancel')}</button>
+                <button onClick={handleCreateProject} className="btn-primary">{t('sidebar.create')}</button>
               </div>
             </div>
           </div>
@@ -488,34 +489,34 @@ export default function UnifiedSidebar() {
 
       {/* New Session Modal */}
       {showNewSessionPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowNewSessionPrompt(false)}>
-          <div className="card p-7 w-full max-w-xl mx-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-base font-semibold">새 세션</h2>
-              <button onClick={() => setShowNewSessionPrompt(false)} className="btn-icon"><X size={16} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4" onClick={() => setShowNewSessionPrompt(false)}>
+          <div className="dashboard-panel p-8 w-full max-w-xl mx-4 animate-fade-in shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold text-white tracking-tight">{t('sidebar.newSession')}</h2>
+              <button onClick={() => setShowNewSessionPrompt(false)} className="btn-icon"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="label">프롬프트</label>
+                <label className="label">{t('sessions.prompt')}</label>
                 <textarea
                   className="input resize-none"
                   rows={5}
                   value={newSessionPrompt}
                   onChange={(e) => setNewSessionPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="수행할 작업을 자세히 설명해주세요..."
+                  placeholder={t('sidebar.promptPlaceholder')}
                   autoFocus
                 />
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Ctrl+Enter로 생성</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('sidebar.ctrlEnterToCreate')}</p>
               </div>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowNewSessionPrompt(false)} className="btn-secondary">취소</button>
+              <div className="flex gap-3 justify-end pt-4 mt-2">
+                <button onClick={() => setShowNewSessionPrompt(false)} className="btn-secondary">{t('common.cancel')}</button>
                 <button
                   onClick={handleCreateSessionWithPrompt}
                   disabled={!newSessionPrompt.trim()}
                   className="btn-primary"
                 >
-                  세션 생성
+                  {t('sidebar.newSession')}
                 </button>
               </div>
             </div>
@@ -530,7 +531,7 @@ export default function UnifiedSidebar() {
         onSave={async (id, data) => {
           try {
             await updateSession(id, data);
-            toast.success('수정되었습니다');
+            toast.success(t('sidebar.modified'));
             setEditingSession(null);
           } catch (err: any) { toast.error(err.message); }
         }}
@@ -541,13 +542,13 @@ export default function UnifiedSidebar() {
         isOpen={!!showDeleteSessionConfirm}
         onClose={() => setShowDeleteSessionConfirm(null)}
         onConfirm={confirmDeleteSession}
-        title={showDeleteSessionConfirm?.isRunning ? '실행 중인 세션 삭제' : '세션 삭제'}
+        title={showDeleteSessionConfirm?.isRunning ? t('sidebar.deleteRunningSession') : t('sidebar.deleteSession')}
         message={showDeleteSessionConfirm?.isRunning
-          ? `실행 중인 세션 "${showDeleteSessionConfirm.name}"을(를) 삭제하시겠습니까?`
-          : `세션 "${showDeleteSessionConfirm?.name}"을(를) 삭제하시겠습니까?`}
+          ? t('sidebar.deleteRunningSessionMsg', { name: showDeleteSessionConfirm.name })
+          : t('sidebar.deleteSessionMsg', { name: showDeleteSessionConfirm?.name })}
         type={showDeleteSessionConfirm?.isRunning ? 'danger' : 'warning'}
-        confirmText="삭제"
-        cancelText="취소"
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
       />
 
       {/* Delete Project Confirm */}
@@ -555,11 +556,11 @@ export default function UnifiedSidebar() {
         isOpen={!!showDeleteProjectConfirm}
         onClose={() => setShowDeleteProjectConfirm(null)}
         onConfirm={confirmDeleteProject}
-        title="프로젝트 삭제"
-        message={`프로젝트 "${showDeleteProjectConfirm?.name}"을(를) 삭제하시겠습니까? 모든 세션과 작업이 삭제됩니다.`}
+        title={t('sidebar.deleteProject')}
+        message={t('sidebar.deleteProjectMsg', { name: showDeleteProjectConfirm?.name })}
         type="danger"
-        confirmText="삭제"
-        cancelText="취소"
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
       />
     </div>
   );
@@ -585,6 +586,7 @@ function DraggableSession({
   needsInput: boolean;
   modelLabel: string | null;
 }) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[session.status];
   const Icon = config.icon;
 
@@ -601,24 +603,22 @@ function DraggableSession({
     <div
       ref={setNodeRef}
       style={style}
-      className={`w-full ${
-        isActive
-          ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800/50'
-          : 'border border-transparent'
-      } rounded-xl overflow-hidden`}
+      className={`w-full ${isActive
+        ? 'bg-indigo-500/10 border border-indigo-500/30 shadow-md transform scale-[1.02] z-10'
+        : 'bg-white dark:bg-[#1a223f] border border-slate-300 dark:border-[#8492c4]/20 hover:border-indigo-400/50 shadow-sm hover:shadow active:scale-[0.98]'
+        } rounded-xl overflow-hidden transition-all duration-200 relative`}
     >
       {/* Main content area */}
       <div
         onClick={onSelect}
-        className={`px-3 py-2.5 cursor-pointer group transition-colors ${
-          !isActive ? 'hover:bg-gray-100 dark:hover:bg-gray-800/60' : ''
-        }`}
+        className={`px-4 py-3.5 cursor-pointer group transition-colors ${!isActive ? 'hover:bg-slate-100 dark:bg-[#212946]' : ''
+          }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           {/* Drag handle */}
           <button
             className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 shrink-0"
-            title="드래그하여 체인 연결"
+            title={t('sidebar.dragToLink')}
             {...attributes}
             {...listeners}
           >
@@ -626,14 +626,16 @@ function DraggableSession({
           </button>
 
           <Icon size={13} className={`${config.color} shrink-0 ${session.status === 'running' ? 'animate-spin' : ''}`} />
-          <span className="text-sm font-medium truncate flex-1 min-w-0">{session.name}</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-[#d7dcec] truncate flex-1 min-w-0" title={t(config.labelKey)}>
+            {session.name}
+          </span>
 
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
             {isMulti && (
               <button
                 onClick={onRemoveFromChain}
                 className="p-1 hover:bg-orange-50 dark:hover:bg-orange-900/20 text-orange-500 rounded transition-all"
-                title="체인에서 분리"
+                title={t('sidebar.unlinkFromChain')}
               >
                 <Unlink size={11} />
               </button>
@@ -641,14 +643,14 @@ function DraggableSession({
             <button
               onClick={onEdit}
               className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded transition-all"
-              title="수정"
+              title={t('common.edit')}
             >
               <Pencil size={11} />
             </button>
             <button
               onClick={onDelete}
               className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded transition-all"
-              title="삭제"
+              title={t('common.delete')}
             >
               <Trash2 size={11} />
             </button>
@@ -662,29 +664,28 @@ function DraggableSession({
               {modelLabel}
             </span>
           )}
-          {needsInput && <span className="badge-human">응답 필요</span>}
-          {counts.running > 0 && <span className="badge-running">실행 {counts.running}</span>}
-          {counts.todo > 0 && <span className="badge-idle">대기 {counts.todo}</span>}
-          {counts.done > 0 && <span className="badge-completed">완료 {counts.done}</span>}
+          {needsInput && <span className="badge-human">{t('sidebar.inputRequiredBadge')}</span>}
+          {counts.running > 0 && <span className="badge-running">{t('sidebar.runningBadge', { count: counts.running })}</span>}
+          {counts.todo > 0 && <span className="badge-idle">{t('sidebar.waitingBadge', { count: counts.todo })}</span>}
+          {counts.done > 0 && <span className="badge-completed">{t('sidebar.completedBadge', { count: counts.done })}</span>}
         </div>
       </div>
 
       {/* Toggle button at bottom */}
       <button
         onClick={onToggle}
-        className={`w-full p-3 transition-colors flex items-center justify-center gap-2 border-t ${
-          session.isActive
-            ? 'bg-green-500 text-white hover:bg-green-600 border-green-600'
-            : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500 border-gray-400 dark:border-gray-500'
-        }`}
-        title={session.isActive ? '세션 비활성화' : '세션 활성화'}
+        className={`w-full p-2 mt-2 transition-colors flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer ${session.isActive
+          ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+          : 'bg-slate-50 dark:bg-[#111936] text-slate-500 dark:text-[#8492c4] hover:bg-slate-100 dark:bg-[#212946] hover:text-slate-900 dark:text-[#d7dcec]'
+          }`}
+        title={session.isActive ? t('sidebar.offline') : t('sidebar.active')}
       >
-        <Power size={20} className={session.isActive ? '' : 'opacity-60'} />
-        <span className="text-sm font-semibold">
-          {session.isActive ? '활성화됨' : '비활성화됨'}
+        <Power size={14} className={session.isActive ? '' : 'opacity-60'} />
+        <span>
+          {session.isActive ? t('sidebar.active') : t('sidebar.offline')}
         </span>
       </button>
-    </div>
+    </div >
   );
 }
 
@@ -711,6 +712,7 @@ function ChainCard({
   getTaskCounts: (id: string) => { todo: number; running: number; done: number };
   hasHumanInput: (id: string) => boolean;
 }) {
+  const { t } = useTranslation();
   const isMulti = chain.sessions.length > 1;
   const isDragSource = draggingSessionId !== null && chain.sessions.some(s => s.id === draggingSessionId);
 
@@ -726,7 +728,7 @@ function ChainCard({
             onClick={() => onMoveChain('up')}
             disabled={chainIndex === 0}
             className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-            title="위로"
+            title={t('sidebar.moveUp')}
           >
             <ChevronUp size={12} />
           </button>
@@ -734,7 +736,7 @@ function ChainCard({
             onClick={() => onMoveChain('down')}
             disabled={chainIndex === totalChains - 1}
             className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-            title="아래로"
+            title={t('sidebar.moveDown')}
           >
             <ChevronDown size={12} />
           </button>
@@ -744,14 +746,13 @@ function ChainCard({
       {/* Group content */}
       <div
         ref={setNodeRef}
-        className={`flex-1 min-w-0 rounded-lg transition-all ${
-          isMulti ? 'bg-white dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-gray-700 p-1' : ''
-        } ${showHighlight ? 'ring-2 ring-primary-400 bg-primary-50/30 dark:bg-primary-900/10' : ''}`}
+        className={`flex-1 min-w-0 transition-all rounded-xl ${isMulti ? 'bg-slate-50 dark:bg-[#111936] border border-slate-300 dark:border-[#8492c4]/20 p-2' : ''
+          } ${showHighlight ? 'border-dashed border-2 border-indigo-500 bg-indigo-500/10' : ''}`}
       >
         {isMulti && (
           <div className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 dark:text-gray-500">
             <Link2 size={10} />
-            <span>{chain.sessions.length}개 세션 체인</span>
+            <span>{t('sidebar.sessionChain', { count: chain.sessions.length })}</span>
           </div>
         )}
 
@@ -788,7 +789,7 @@ function ChainCard({
 
         {showHighlight && (
           <div className="mt-1 text-xs text-center py-1 text-primary-500 font-medium">
-            여기에 놓아 체인에 합류
+            {t('sidebar.joinChain')}
           </div>
         )}
       </div>

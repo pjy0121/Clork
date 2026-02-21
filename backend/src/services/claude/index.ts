@@ -18,5 +18,5 @@ export { createUsageState } from './usageState';
 
 export { LocalFileReader, CLAUDE_HOME, CREDENTIALS_PATH, STATS_CACHE_PATH } from './localFileReader';
 export { UsageTracker } from './usageTracker';
-export { TaskExecutor, isHumanInputNeeded, looksLikePermissionPrompt } from './taskExecutor';
+export { TaskExecutor, isHumanInputNeeded, looksLikePermissionPrompt, detectQuestionInResult } from './taskExecutor';
 export { UsagePolling, USAGE_POLL_INTERVAL_MS } from './usagePolling';

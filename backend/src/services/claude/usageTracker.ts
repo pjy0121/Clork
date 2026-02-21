@@ -84,12 +84,6 @@ export class UsageTracker {
     }
 
     this.state.usageTracker.lastUpdatedAt = new Date().toISOString();
-
-    console.log(
-      `[UsageTracker] Rate limit (CLI) — type: ${key}, status: ${info.status}, ` +
-      `utilization: ${utilization !== null ? utilization.toFixed(1) : 'N/A'}%, ` +
-      `resetsAt: ${info.resetsAt ? new Date(info.resetsAt * 1000).toLocaleTimeString() : 'N/A'}`
-    );
   }
 
   /**
@@ -102,8 +96,6 @@ export class UsageTracker {
         timeout: 10000,
         shell: true as any,
       }).trim();
-      console.log('[UsageTracker] CLI version:', result);
-
       // Also refresh local files on status check
       this.localFileReader.refreshLocalFiles();
 

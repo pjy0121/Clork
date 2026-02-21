@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export default function AddTaskModal({
   onAdd,
   location,
 }: AddTaskModalProps) {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,10 +46,10 @@ export default function AddTaskModal({
     }
   };
 
-  const title = location === 'todo' ? '대기열에 작업 추가' : '백로그에 작업 추가';
+  const title = location === 'todo' ? t('tasks.addTitleQueue') : t('tasks.addTitleBacklog');
   const placeholder = location === 'todo'
-    ? '수행할 작업을 자세히 설명해주세요...'
-    : '나중에 수행할 아이디어나 작업을 설명해주세요...';
+    ? t('tasks.placeholderQueue')
+    : t('tasks.placeholderBacklog');
 
   return (
     <div
@@ -55,7 +57,7 @@ export default function AddTaskModal({
       onClick={onClose}
     >
       <div
-        className="card p-7 w-full max-w-xl mx-4 animate-fade-in"
+        className="dashboard-panel p-7 w-full max-w-xl mx-4 animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
@@ -66,7 +68,7 @@ export default function AddTaskModal({
         </div>
         <div className="space-y-4">
           <div>
-            <label className="label">프롬프트</label>
+            <label className="label">{t('tasks.prompt')}</label>
             <textarea
               className="input resize-none"
               rows={5}
@@ -77,18 +79,18 @@ export default function AddTaskModal({
               autoFocus
             />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
-              Ctrl+Enter로 빠르게 추가
+              {t('tasks.quickAddHint')}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className="btn-secondary">취소</button>
+            <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button
               onClick={handleAdd}
               disabled={!prompt.trim() || isLoading}
               className="btn-primary inline-flex items-center gap-1.5"
             >
               <Plus size={13} />
-              {isLoading ? '추가 중...' : '추가'}
+              {isLoading ? t('tasks.adding') : t('common.add')}
             </button>
           </div>
         </div>

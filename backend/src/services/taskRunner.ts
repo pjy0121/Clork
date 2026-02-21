@@ -2,11 +2,13 @@ import { randomUUID } from 'crypto';
 import { Server as SocketServer } from 'socket.io';
 import { sessionOps, taskOps, eventOps, projectOps } from '../database';
 import { claudeService } from './claudeService';
+import { detectQuestionInResult } from './claude/taskExecutor';
 import { Task, Session, TaskEvent, Project } from '../types';
 
 class TaskRunner {
   private io: SocketServer | null = null;
   private runningTasks: Map<string, string> = new Map(); // taskId -> sessionId
+  private humanInputPending: Map<string, { sessionId: string; projectId: string }> = new Map(); // taskId -> session/project info
 
   setIO(io: SocketServer) {
     this.io = io;
@@ -17,23 +19,16 @@ class TaskRunner {
    */
   async processSession(sessionId: string): Promise<void> {
     try {
-      console.log(`\n[TaskRunner] processSession: ${sessionId}`);
-
       const session = sessionOps.getById.get(sessionId) as Session | undefined;
-      if (!session) {
-        console.log(`[TaskRunner] Session not found: ${sessionId}`);
-        return;
-      }
+      if (!session) return;
 
       // Check if there's already a running task in this session
       const runningTask = taskOps.getRunning.get(sessionId) as Task | undefined;
       if (runningTask) {
-        console.log(`[TaskRunner] Session ${sessionId} already has running task: ${runningTask.id}`);
-
         // Check if the task is actually still running (not stuck)
         const isActuallyRunning = this.runningTasks.has(runningTask.id);
         if (!isActuallyRunning) {
-          console.log(`[TaskRunner] Task ${runningTask.id} is marked as running but not in runningTasks map - marking as failed`);
+          console.warn(`[TaskRunner] Stuck task ${runningTask.id} — marking as failed`);
           taskOps.updateCompleted.run('failed', runningTask.id);
           const failedTask = taskOps.getById.get(runningTask.id) as Task;
           this.io?.emit('task:failed', {
@@ -49,12 +44,10 @@ class TaskRunner {
 
       // Get next pending todo task
       const pendingTasks = taskOps.getTodo.all(sessionId) as Task[];
-      console.log(`[TaskRunner] Session ${sessionId} has ${pendingTasks.length} pending tasks`);
 
       if (pendingTasks.length === 0) {
         // No more tasks - mark session as completed
         if (session.status === 'running') {
-          console.log(`[TaskRunner] Session ${sessionId} completed (no more tasks)`);
           sessionOps.updateStatus.run('completed', sessionId);
           const updatedSession = sessionOps.getById.get(sessionId) as Session;
           this.io?.emit('session:updated', updatedSession);
@@ -65,14 +58,10 @@ class TaskRunner {
       }
 
       // Check if session is active (can auto-execute tasks)
-      if (!session.isActive) {
-        console.log(`[TaskRunner] Session ${sessionId} is not active, skipping auto-execution`);
-        return;
-      }
+      if (!session.isActive) return;
 
       // Ensure session is in running state (multiple sessions can run concurrently)
       if (session.status !== 'running') {
-        console.log(`[TaskRunner] Session ${sessionId} set to running`);
         sessionOps.updateStatus.run('running', sessionId);
         const updatedSession = sessionOps.getById.get(sessionId) as Session;
         this.io?.emit('session:updated', updatedSession);
@@ -80,7 +69,6 @@ class TaskRunner {
 
       // Start the first pending task
       const task = pendingTasks[0];
-      console.log(`[TaskRunner] Starting task: ${task.id} (prompt: "${task.prompt.substring(0, 60)}...")`);
       this.startTask(task, session);
     } catch (err: any) {
       console.error(`[TaskRunner] Error in processSession:`, err);
@@ -103,7 +91,6 @@ class TaskRunner {
 
     // Read updated task from DB for the frontend
     const updatedTask = taskOps.getById.get(task.id) as Task;
-    console.log(`[TaskRunner] Task ${task.id} status updated to: running`);
 
     // Emit task started with the full task data
     this.io?.emit('task:started', {
@@ -128,6 +115,9 @@ class TaskRunner {
       timestamp: new Date().toISOString(),
     };
     this.io?.emit('task:progress', { taskId: task.id, event: initEvent });
+
+    // Accumulate result text from assistant/result events for question detection
+    let resultText = '';
 
     // Execute with Claude Code
     claudeService.executeTask(
@@ -167,10 +157,17 @@ class TaskRunner {
           if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
             sessionOps.updateClaudeSessionId.run(event.session_id, session.id);
           }
+
+          // Accumulate text from result events for question detection
+          if (event.type === 'result' && event.result) {
+            resultText += event.result + '\n';
+          } else if (event.type === 'assistant' && event.message) {
+            const msg = typeof event.message === 'string' ? event.message : JSON.stringify(event.message);
+            resultText += msg + '\n';
+          }
         },
 
         onComplete: (result) => {
-          console.log(`[TaskRunner] Task ${task.id} completed successfully`);
           claudeService.trackTaskComplete(task.id, true);
 
           const eventId = randomUUID();
@@ -188,17 +185,14 @@ class TaskRunner {
           this.io?.emit('task:progress', { taskId: task.id, event: completionEvent });
 
           // Update DB: move to done
-          const updateResult = taskOps.updateCompleted.run('completed', task.id);
-          console.log(`[TaskRunner] DB update result: changes=${updateResult.changes}`);
+          taskOps.updateCompleted.run('completed', task.id);
           this.runningTasks.delete(task.id);
 
           if (result.sessionId) {
             sessionOps.updateClaudeSessionId.run(result.sessionId, session.id);
           }
 
-          // Verify DB update
           const doneTask = taskOps.getById.get(task.id) as Task;
-          console.log(`[TaskRunner] Task after update: status=${doneTask?.status}, location=${doneTask?.location}`);
 
           // Emit task completed with updated task data
           this.io?.emit('task:completed', {
@@ -208,22 +202,32 @@ class TaskRunner {
             result,
           });
 
+          // Check if Claude asked a question in the result — trigger HITL
+          if (detectQuestionInResult(resultText)) {
+            console.log(`[TaskRunner] Question detected in result for task ${task.id} — waiting for human input`);
+            this.humanInputPending.set(task.id, { sessionId: session.id, projectId: session.projectId });
+
+            this.io?.emit('task:humanInput', {
+              taskId: task.id,
+              sessionId: session.id,
+              prompt: resultText.trim(),
+            });
+            // Do NOT auto-process next task — wait for human response
+            return;
+          }
+
           // Process next task in this session if the session is still active
           const currentSession = sessionOps.getById.get(session.id) as Session;
           if (currentSession.isActive) {
-            console.log(`[TaskRunner] Scheduling next task check for active session ${session.id}`);
-            setTimeout(() => {
-              console.log(`[TaskRunner] Running scheduled processSession for ${session.id}`);
-              this.processSession(session.id);
-            }, 500);
-          } else {
-            console.log(`[TaskRunner] Session ${session.id} is not active, not processing next task`);
+            setTimeout(() => this.processSession(session.id), 500);
           }
         },
 
         onError: (error) => {
           const status = error.aborted ? 'aborted' : 'failed';
-          console.log(`[TaskRunner] Task ${task.id} ${status}:`, error);
+          if (!error.aborted) {
+            console.error(`[TaskRunner] Task ${task.id} failed:`, error.error || `exit ${error.exitCode}`);
+          }
           claudeService.trackTaskComplete(task.id, false);
 
           const eventId = randomUUID();
@@ -256,14 +260,10 @@ class TaskRunner {
           });
 
           // Continue to next task after a short delay regardless of failure type
-          setTimeout(() => {
-            console.log(`[TaskRunner] Processing next task after ${status} for session ${session.id}`);
-            this.processSession(session.id);
-          }, 500);
+          setTimeout(() => this.processSession(session.id), 500);
         },
 
         onHumanInput: (data) => {
-          console.log(`[TaskRunner] Task ${task.id} needs human input`);
           const eventId = randomUUID();
           eventOps.create.run(eventId, task.id, 'human_input', JSON.stringify(data));
 
@@ -290,7 +290,18 @@ class TaskRunner {
    * Abort a running task
    */
   abortTask(taskId: string): boolean {
-    console.log(`[TaskRunner] Aborting task ${taskId}`);
+    // If task is in humanInputPending (completed but waiting for human), just clear it
+    if (this.humanInputPending.has(taskId)) {
+      const pending = this.humanInputPending.get(taskId)!;
+      this.humanInputPending.delete(taskId);
+      this.io?.emit('task:humanInputCleared', { taskId, sessionId: pending.sessionId });
+      // Resume session processing
+      setTimeout(() => {
+        this.processSession(pending.sessionId);
+      }, 500);
+      return true;
+    }
+
     const success = claudeService.abort(taskId);
     if (success) {
       taskOps.updateCompleted.run('aborted', taskId);
@@ -300,21 +311,43 @@ class TaskRunner {
         const abortedTask = taskOps.getById.get(taskId) as Task;
         this.io?.emit('task:aborted', { taskId, sessionId, task: abortedTask });
 
-        // Continue processing the session after abort
-        setTimeout(() => {
-          console.log(`[TaskRunner] Processing next task after abort for session ${sessionId}`);
-          this.processSession(sessionId);
-        }, 500);
+        setTimeout(() => this.processSession(sessionId), 500);
       }
     }
     return success;
   }
 
   /**
-   * Send human response to a running task
+   * Send human response — creates a follow-up task with the user's response
+   * and resumes via --resume (the session's claudeSessionId).
    */
   sendHumanResponse(taskId: string, response: string): boolean {
-    return claudeService.sendInput(taskId, response);
+    const pending = this.humanInputPending.get(taskId);
+    if (!pending) return false;
+
+    const { sessionId, projectId } = pending;
+    this.humanInputPending.delete(taskId);
+
+    // Clear HITL state on frontend
+    this.io?.emit('task:humanInputCleared', { taskId, sessionId });
+
+    // Create a follow-up task in the same session
+    const followUpId = randomUUID();
+    const followUpPrompt = response;
+    const maxOrder = (taskOps.getMaxTodoOrder.get(sessionId) as any)?.maxOrder ?? -1;
+    taskOps.create.run(followUpId, projectId, sessionId, followUpPrompt, 'pending', 'todo', maxOrder + 1);
+
+    const followUpTask = taskOps.getById.get(followUpId) as Task;
+
+    // Notify frontend of new task
+    this.io?.emit('task:created', { task: followUpTask, sessionId, projectId });
+
+    // Process session — will pick up the follow-up task and run with --resume
+    setTimeout(() => {
+      this.processSession(sessionId);
+    }, 300);
+
+    return true;
   }
 
   isTaskRunning(taskId: string): boolean {
@@ -333,26 +366,14 @@ class TaskRunner {
    */
   async processChainedSession(completedSessionId: string): Promise<void> {
     const completedSession = sessionOps.getById.get(completedSessionId) as Session | undefined;
-    if (!completedSession?.nextSessionId) {
-      console.log(`[TaskRunner] No chained session for ${completedSessionId}`);
-      return;
-    }
+    if (!completedSession?.nextSessionId) return;
 
-    console.log(`[TaskRunner] Looking for chained session: ${completedSession.nextSessionId}`);
     const nextSession = sessionOps.getChainedSession.get(completedSession.nextSessionId) as Session | undefined;
-    if (!nextSession) {
-      console.log(`[TaskRunner] Chained session not found: ${completedSession.nextSessionId}`);
-      return;
-    }
-
-    if (nextSession.status !== 'idle') {
-      console.log(`[TaskRunner] Chained session ${nextSession.id} is not idle (status: ${nextSession.status}), skipping`);
-      return;
-    }
+    if (!nextSession) return;
+    if (nextSession.status !== 'idle') return;
 
     const pendingTasks = taskOps.getTodo.all(nextSession.id) as Task[];
     if (pendingTasks.length === 0) {
-      console.log(`[TaskRunner] Chained session ${nextSession.id} has no tasks, marking completed`);
       sessionOps.updateStatus.run('completed', nextSession.id);
       const updatedSession = sessionOps.getById.get(nextSession.id) as Session;
       this.io?.emit('session:updated', updatedSession);
@@ -361,7 +382,6 @@ class TaskRunner {
       return;
     }
 
-    console.log(`[TaskRunner] Starting chained session: ${nextSession.id} (${nextSession.name})`);
     this.processSession(nextSession.id);
   }
 }

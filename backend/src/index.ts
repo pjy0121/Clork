@@ -48,8 +48,6 @@ claudeService.setIO(io);
 
 // Socket.IO event handlers
 io.on('connection', (socket) => {
-  console.log(`[Socket] Client connected: ${socket.id}`);
-
   // Send Claude status on connect
   const status = claudeService.checkStatus();
   socket.emit('claude:status', {
@@ -57,27 +55,19 @@ io.on('connection', (socket) => {
     user: status.user || undefined,
   });
 
-  // Handle task abort
   socket.on('task:abort', (data: { taskId: string }) => {
-    console.log(`[Socket] Abort task: ${data.taskId}`);
     taskRunner.abortTask(data.taskId);
   });
 
-  // Handle human response
   socket.on('task:humanResponse', (data: { taskId: string; response: string }) => {
-    console.log(`[Socket] Human response for task: ${data.taskId}`);
     taskRunner.sendHumanResponse(data.taskId, data.response);
   });
 
-  // Handle session start
   socket.on('session:start', (data: { sessionId: string }) => {
-    console.log(`[Socket] Start session: ${data.sessionId}`);
     taskRunner.processSession(data.sessionId);
   });
 
-  socket.on('disconnect', () => {
-    console.log(`[Socket] Client disconnected: ${socket.id}`);
-  });
+  socket.on('disconnect', () => {});
 });
 
 // Start server

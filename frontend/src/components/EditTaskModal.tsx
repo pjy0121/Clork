@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { Task } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export default function EditTaskModal({
   task,
   onSave,
 }: EditTaskModalProps) {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,40 +53,40 @@ export default function EditTaskModal({
       onClick={onClose}
     >
       <div
-        className="card p-7 w-full max-w-xl mx-4 animate-fade-in"
+        className="dashboard-panel p-7 w-full max-w-xl mx-4 animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold">작업 수정</h2>
+          <h2 className="text-base font-semibold">{t('tasks.editTask')}</h2>
           <button onClick={onClose} className="btn-icon">
             <X size={16} />
           </button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="label">프롬프트</label>
+            <label className="label">{t('tasks.prompt')}</label>
             <textarea
               className="input resize-none"
               rows={5}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="수행할 작업을 자세히 설명해주세요..."
+              placeholder={t('tasks.promptPlaceholder')}
               autoFocus
             />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
-              Ctrl+Enter로 빠르게 저장
+              {t('tasks.quickSaveHint')}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className="btn-secondary">취소</button>
+            <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button
               onClick={handleSave}
               disabled={!prompt.trim() || isLoading}
               className="btn-primary inline-flex items-center gap-1.5"
             >
               <Save size={13} />
-              {isLoading ? '저장 중...' : '저장'}
+              {isLoading ? t('tasks.saving') : t('common.save')}
             </button>
           </div>
         </div>
