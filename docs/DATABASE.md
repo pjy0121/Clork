@@ -12,7 +12,6 @@ SQLite database at `backend/data/clork.db`. WAL mode enabled.
 | rootDirectory | TEXT NOT NULL | | Absolute path |
 | defaultModel | TEXT | 'claude-sonnet-4-20250514' | |
 | permissionMode | TEXT | 'default' | 'plan' \| 'default' \| 'full' |
-| autoProcessBacklog | INTEGER | 0 | 0=off, 1=on |
 | maxTasksPerSession | INTEGER | 10 | Max tasks per auto-created session |
 | createdAt | TEXT | datetime('now') | |
 | updatedAt | TEXT | datetime('now') | |
@@ -37,7 +36,7 @@ SQLite database at `backend/data/clork.db`. WAL mode enabled.
 | sessionId | TEXT | NULL | FK → sessions.id CASCADE |
 | prompt | TEXT NOT NULL | | User prompt for Claude |
 | status | TEXT | 'pending' | pending/running/completed/failed/aborted |
-| location | TEXT | 'backlog' | backlog/todo/done |
+| location | TEXT | 'todo' | todo/done |
 | taskOrder | INTEGER NOT NULL | | Order within location |
 | startedAt | TEXT | NULL | |
 | completedAt | TEXT | NULL | |

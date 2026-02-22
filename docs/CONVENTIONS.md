@@ -3,7 +3,8 @@
 ## General
 
 - **Language**: TypeScript (strict mode) for both frontend and backend
-- **UI Text**: Korean (한국어) for all user-facing strings
+- **UI Text**: Multi-language support (KO/EN) via `react-i18next`. Default: Korean.
+- **English Labels**: Sentence Case for labels/messages, Title Case for buttons/headers.
 - **IDs**: UUID v4 via `crypto.randomUUID()`
 - **Timestamps**: ISO 8601 strings via SQLite `datetime('now')`
 

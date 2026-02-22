@@ -7,7 +7,7 @@ Web-based task management tool for [Claude Code](https://docs.anthropic.com/en/d
 - **Project Management** — Group tasks by working directory with configurable Claude model and permission mode
 - **Session-based Execution** — Organize tasks into ordered sessions that auto-start when tasks are queued
 - **Real-time Streaming** — Watch Claude's output live via Socket.IO as tasks execute
-- **Drag & Drop** — Reorder tasks and move them between backlog, todo, and done
+- **Drag & Drop** — Reorder tasks and move them between queue and completion lists
 - **Multiple Concurrent Sessions** — Run several sessions in parallel
 - **Human-in-the-Loop** — Intervene during task execution when Claude needs input
 
@@ -60,7 +60,7 @@ Browser (React + Zustand)
                                           └──► DB Updates
 ```
 
-**Task lifecycle**: `backlog → todo → running → done`
+**Task lifecycle**: `todo → running → done`
 
 **Session lifecycle**: `idle → running → completed` (auto-transitions)
 

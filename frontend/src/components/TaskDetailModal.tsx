@@ -1,15 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   X,
-  Copy,
+  ArrowUp,
   Clock,
   CheckCircle2,
   XCircle,
   AlertTriangle,
   Loader2,
   DollarSign,
-  Timer,
+  Cpu,
+  Eye,
+  Pencil,
   FileText,
+  Timer,
+  Wrench,
+  Terminal,
+  ChevronDown,
+  ChevronRight,
+  Info,
+  Layout,
+  MessageSquare,
+  Code2,
+  Settings,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -165,7 +177,7 @@ export default function TaskDetailModal() {
             onClick={handleCopyToQueue}
             className="btn-primary inline-flex items-center gap-2 px-6 py-2 text-sm font-semibold"
           >
-            <Copy size={16} />
+            <ArrowUp size={16} />
             {t('sessions.copyToQueue')}
           </button>
         </div>
@@ -175,6 +187,9 @@ export default function TaskDetailModal() {
 }
 
 function DetailEventLine({ event }: { event: TaskEvent }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
+
   let data: ParsedEventData;
   try {
     data = JSON.parse(event.data);
@@ -183,86 +198,230 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
   }
 
   const time = new Date(event.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const prefix = <span className="text-slate-600 mr-2">[{time}]</span>;
+  const prefix = <span className="text-slate-500 dark:text-[#8492c4]/50 mr-3 font-mono text-[10px] shrink-0">[{time}]</span>;
 
+  const renderRawToggle = () => (
+    <button
+      onClick={(e) => { e.stopPropagation(); setShowRaw(!showRaw); }}
+      className="ml-auto text-[10px] text-slate-400 hover:text-indigo-400 transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-tighter"
+    >
+      {showRaw ? '{JSON}' : '{...}'}
+    </button>
+  );
+
+  if (showRaw) {
+    return (
+      <div className="group flex items-start gap-1 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-white/10 mb-2">
+        {prefix}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold text-slate-500 uppercase">Raw Event: {data.type || event.eventType}</span>
+            {renderRawToggle()}
+          </div>
+          <pre className="text-[10px] text-slate-400 overflow-x-auto bg-slate-100 dark:bg-black/20 p-2 rounded border border-slate-200 dark:border-white/5 scrollbar-thin">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </div>
+      </div>
+    );
+  }
+
+  // Specialized Renderers
   if (data.type === 'system' && data.subtype === 'init') {
     return (
-      <div className="text-slate-500 mb-1">
-        {prefix}[SYS] SESSION_INIT — MDL: {data.model}
+      <div className="group flex items-center gap-3 py-2 border-b border-slate-100 dark:border-white/5 mb-2">
+        <Settings size={14} className="text-slate-400 shrink-0" />
+        <span className="text-[11px] font-bold text-slate-500 dark:text-[#8492c4] uppercase tracking-wider">
+          {prefix} Session Initialized — {data.model}
+        </span>
+        {renderRawToggle()}
       </div>
     );
   }
 
   if (data.type === 'task_started') {
     return (
-      <div className="text-emerald-400 mb-1">
-        {prefix}[EXEC] START_PROMPT_EXECUTION
+      <div className="group flex items-center gap-3 py-3 border-b border-slate-200 dark:border-white/10 mb-4 bg-emerald-500/5 -mx-2 px-2 rounded-lg">
+        <Terminal size={14} className="text-emerald-500 shrink-0" />
+        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+          {prefix} Execution Started
+        </span>
+        {renderRawToggle()}
       </div>
     );
   }
 
-  if (data.type === 'assistant' && data.message?.content) {
+  if (data.type === 'assistant') {
     return (
-      <>
-        {data.message.content.map((block: any, i: number) => {
+      <div className="mb-4">
+        {data.message?.content?.map((block: any, i: number) => {
+          if (block.type === 'thinking') {
+            return (
+              <div key={i} className="group mb-2 border-l-2 border-slate-200 dark:border-[#8492c4]/20 pl-4 py-1">
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-slate-300 transition-colors uppercase tracking-widest"
+                >
+                  {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  <MessageSquare size={12} />
+                  Claude is thinking...
+                </button>
+                {isExpanded && (
+                  <div className="mt-2 text-[11px] text-slate-500 dark:text-[#8492c4]/70 leading-relaxed italic whitespace-pre-wrap">
+                    {block.thinking}
+                  </div>
+                )}
+              </div>
+            );
+          }
           if (block.type === 'text') {
             return (
-              <div key={i} className="text-indigo-300 mb-2">
-                {prefix}
-                <div className="prose prose-sm dark:prose-invert max-w-none
-                  prose-pre:bg-slate-50 dark:prose-pre:bg-[#1a223f] prose-pre:border-slate-200 dark:prose-pre:border-[#8492c4]/10 prose-pre:border
-                  prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
-                  prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:rounded font-mono
-                  prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-headings:text-slate-900 dark:prose-headings:text-white
-                  prose-p:mb-2 prose-ul:my-2 prose-li:my-1">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {block.text}
-                  </ReactMarkdown>
+              <div key={i} className="group flex items-start gap-3 mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Assistant Response</span>
+                    {renderRawToggle()}
+                  </div>
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-indigo-100/90
+                    prose-pre:bg-slate-50 dark:prose-pre:bg-[#1a223f] prose-pre:border-slate-200 dark:prose-pre:border-[#8492c4]/10 prose-pre:border
+                    prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
+                    prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:rounded font-mono
+                    prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-headings:text-slate-900 dark:prose-headings:text-white
+                    prose-p:mb-2 prose-ul:my-2 prose-li:my-1">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {block.text}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             );
           }
           if (block.type === 'tool_use') {
+            // Summarize inputs
+            const inputKeys = Object.keys(block.input || {});
+            const summary = inputKeys.length > 0
+              ? `— ${block.input.path || block.input.filePath || block.input.query || block.input.command || inputKeys[0]}`
+              : '';
+
             return (
-              <div key={i} className="text-amber-400 mb-1">
-                {prefix}[TOOL] {block.name}({JSON.stringify(block.input).substring(0, 300)})
+              <div key={i} className="group mb-3 border border-amber-500/20 bg-amber-500/5 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                    <Wrench size={14} className="text-amber-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider">
+                        Using Tool: <span className="text-amber-400/80 lowercase italic font-mono">{block.name}</span> {summary}
+                      </span>
+                      {renderRawToggle()}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="flex items-center gap-1.5 text-[10px] text-amber-500/60 hover:text-amber-500 transition-colors font-mono mb-2"
+                >
+                  {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {isExpanded ? 'Hide Inputs' : 'View Inputs'}
+                </button>
+
+                {isExpanded && (
+                  <pre className="text-[10px] bg-black/30 p-2 rounded-lg border border-white/5 text-amber-200/70 overflow-x-auto scrollbar-thin">
+                    {JSON.stringify(block.input, null, 2)}
+                  </pre>
+                )}
               </div>
             );
           }
           return null;
         })}
-      </>
+      </div>
     );
   }
 
   if (data.type === 'tool') {
-    const content = typeof data.content === 'string'
-      ? data.content.substring(0, 500)
-      : JSON.stringify(data.content).substring(0, 500);
+    const isError = data.isError;
+    const content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content, null, 2);
+    const summary = content.length > 100 ? content.substring(0, 100) + '...' : content;
+
     return (
-      <div className="text-cyan-600 mb-1 whitespace-pre-wrap">
-        {prefix}[RES] {content}
+      <div className={`group mb-4 border rounded-xl p-3 ${isError ? 'border-rose-500/20 bg-rose-500/5' : 'border-cyan-500/20 bg-cyan-500/5'}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isError ? 'bg-rose-500/20' : 'bg-cyan-500/20'}`}>
+            {isError ? <AlertTriangle size={14} className="text-rose-500" /> : <Layout size={14} className="text-cyan-500" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <span className={`text-[11px] font-bold uppercase tracking-wider ${isError ? 'text-rose-500' : 'text-cyan-500'}`}>
+                Tool Result {isError ? '(Failed)' : ''}
+              </span>
+              {renderRawToggle()}
+            </div>
+          </div>
+        </div>
+
+        <div className="text-[11px] font-mono leading-relaxed overflow-hidden">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`w-full text-left p-2 rounded-lg transition-colors ${isExpanded ? 'bg-black/20' : 'hover:bg-black/10'}`}
+          >
+            <div className="flex items-start gap-2">
+              <div className="mt-1 shrink-0">
+                {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              </div>
+              <div className={`whitespace-pre-wrap break-all ${isExpanded ? '' : 'line-clamp-2'} ${isError ? 'text-rose-300/80' : 'text-cyan-100/80'}`}>
+                {content}
+              </div>
+            </div>
+          </button>
+        </div>
       </div>
     );
   }
 
   if (data.type === 'result') {
     return (
-      <div className="text-emerald-400 mb-2 border-t border-slate-200 dark:border-[#8492c4]/10 pt-1.5 mt-1.5">
-        {prefix}[FINAL_OK]
-        <div className="prose prose-sm dark:prose-invert max-w-none mt-1
+      <div className="group mb-4 border border-emerald-500/30 bg-emerald-500/5 rounded-2xl p-6 relative overflow-hidden shadow-lg shadow-emerald-500/5">
+        <div className="absolute top-0 right-0 p-4 opacity-5">
+          <CheckCircle2 size={120} className="text-emerald-500" />
+        </div>
+
+        <div className="flex items-center gap-3 mb-4 relative z-10">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+            <CheckCircle2 size={24} className="text-emerald-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-emerald-500 uppercase tracking-[0.2em]">Final Completion</h3>
+                <div className="text-[10px] text-slate-400 font-mono tracking-tighter">SUCCESSFUL_TASK_END</div>
+              </div>
+              {renderRawToggle()}
+            </div>
+          </div>
+        </div>
+
+        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-emerald-50/90 relative z-10
           prose-pre:bg-slate-50 dark:prose-pre:bg-[#1a223f] prose-pre:border-slate-200 dark:prose-pre:border-[#8492c4]/10 prose-pre:border
-          prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
+          prose-code:text-emerald-600 dark:prose-code:text-emerald-300 prose-code:bg-slate-50 dark:prose-code:bg-[#1a223f] prose-code:border prose-code:border-slate-200 dark:prose-code:border-[#8492c4]/10
           prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:rounded font-mono
-          prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-headings:text-emerald-600 dark:prose-headings:text-emerald-400
-          prose-p:mb-1 prose-ul:my-1 prose-li:my-0">
+          prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-headings:text-emerald-600 dark:prose-headings:text-emerald-400
+          prose-p:mb-2 prose-ul:my-2 prose-li:my-1">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {data.result || '(NO_RESULT)'}
           </ReactMarkdown>
         </div>
+
         {data.cost_usd !== undefined && (
-          <div className="text-slate-500 dark:text-[#8492c4] mt-1 font-semibold tracking-wider">
-            COST: ${data.cost_usd?.toFixed(4)} | DUR: {((data.duration_ms || 0) / 1000).toFixed(1)}s
+          <div className="flex items-center gap-4 mt-6 pt-4 border-t border-emerald-500/20 text-xs font-bold font-mono tracking-widest text-emerald-500/60 relative z-10">
+            <div className="flex items-center gap-1.5">
+              <DollarSign size={14} /> {data.cost_usd?.toFixed(4)}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock size={14} /> {((data.duration_ms || 0) / 1000).toFixed(1)}s
+            </div>
           </div>
         )}
       </div>
@@ -271,35 +430,50 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
 
   if (data.type === 'error' || data.type === 'stderr') {
     return (
-      <div className="text-rose-500 mb-1">
-        {prefix}[ERR] {data.text || data.error || JSON.stringify(data)}
-      </div>
-    );
-  }
-
-  if (data.type === 'aborted') {
-    return (
-      <div className="text-amber-500 mb-1">
-        {prefix}[ABORT] OPERATION_ABORTED_BY_USER
-      </div>
-    );
-  }
-
-  if (data.type === 'raw') {
-    return (
-      <div className="text-slate-500 mb-1">
-        {prefix}{data.text}
+      <div className="group mb-4 border border-rose-500 bg-rose-500/5 rounded-xl p-4 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center shrink-0">
+          <XCircle size={24} className="text-rose-500" />
+        </div>
+        <div className="flex-1 min-w-0 pt-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Execution Failure</span>
+            {renderRawToggle()}
+          </div>
+          <div className="text-xs font-mono text-rose-300 break-all whitespace-pre-wrap">
+            {data.text || data.error || JSON.stringify(data)}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (data.type === 'human_input' || data.type === 'permission_request') {
     return (
-      <div className="text-fuchsia-500 mb-1 bg-fuchsia-950/20 px-2 py-1 border-l-2 border-fuchsia-500 inline-block">
-        {prefix}[INPUT_REQ] {data.text}
+      <div className="group mb-4 border-2 border-fuchsia-500 bg-fuchsia-500/10 rounded-2xl p-5 shadow-lg shadow-fuchsia-500/10 animate-pulse">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-fuchsia-500 flex items-center justify-center">
+            <Info size={18} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-fuchsia-500 uppercase tracking-widest">Action Required</span>
+              {renderRawToggle()}
+            </div>
+          </div>
+        </div>
+        <div className="text-sm font-semibold text-fuchsia-100 italic pl-11">
+          {data.text}
+        </div>
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="group flex items-start gap-2 py-1 text-[10px] text-slate-500 dark:text-[#8492c4]/40 hover:text-slate-400 transition-colors">
+      {prefix}
+      <span className="flex-1 truncate">{data.text || JSON.stringify(data)}</span>
+      {renderRawToggle()}
+    </div>
+  );
 }
+

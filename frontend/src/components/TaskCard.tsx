@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import {
+  Pencil,
+  ArrowUp,
   GripVertical,
   Square,
-  Trash2,
-  Copy,
-  Eye,
+  Clock,
   CheckCircle2,
   XCircle,
-  Clock,
-  Hand,
-  ArrowUp,
-  ArrowDown,
-  Pencil,
-  Loader2,
+  Trash2,
+  Eye,
   AlertTriangle,
+  Loader2,
+  Hand,
 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -180,7 +178,7 @@ export default function TaskCard({ task, isNext, showActions = true, isDone, onE
                     className="p-1.5 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
                     title="Copy to Queue"
                   >
-                    <Copy size={16} />
+                    <ArrowUp size={16} />
                   </button>
                 </>
               )}

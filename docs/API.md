@@ -9,7 +9,7 @@ Base URL: `http://localhost:3001/api`
 | GET | /projects | | List all projects |
 | GET | /projects/:id | | Get project |
 | POST | /projects | `{name, rootDirectory, defaultModel?, permissionMode?}` | Create project |
-| PUT | /projects/:id | `{name?, rootDirectory?, defaultModel?, permissionMode?, autoProcessBacklog?, maxTasksPerSession?}` | Update project |
+| PUT | /projects/:id | `{name?, rootDirectory?, defaultModel?, permissionMode?, maxTasksPerSession?}` | Update project |
 | DELETE | /projects/:id | | Delete project + cascade |
 
 ## Sessions
@@ -41,7 +41,7 @@ Base URL: `http://localhost:3001/api`
 | POST | /tasks/reorder | `{taskOrders: [{id, taskOrder}]}` | Reorder tasks |
 | DELETE | /tasks/:id | | Delete task |
 
-**Auto-start**: Moving a task to `todo` automatically triggers `processSession()` if the session is idle/running/completed.
+**Auto-start**: Tasks in an `Active` session's Queue start and process automatically. Sequential execution continues until the Queue is empty.
 
 ## Settings
 

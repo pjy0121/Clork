@@ -35,9 +35,9 @@ Browser (React + Zustand)
 
 - **Project**: Working directory + default model + permission mode + auto-process settings
 - **Session**: Ordered queue of tasks within a project. Multiple sessions can run concurrently.
-- **Task**: A prompt sent to Claude. Flows: `backlog → todo → (running) → done`
+- **Task**: A prompt sent to Claude. Flows: `todo → (running) → done` (Backlog removed)
 - **TaskEvent**: Streamed output from Claude CLI execution (assistant, tool_use, result, etc.)
-- **Auto-process**: Projects can auto-create sessions from backlog tasks (when enabled)
+- **Auto-Task Execution**: Tasks in an active session's Queue starting and processing sequentially without manual intervention.
 
 ## Directory Structure
 
@@ -64,8 +64,8 @@ Clork/
 │   ├── types.ts              # Frontend type definitions
 │   └── components/
 │       ├── Header.tsx
-│       ├── UnifiedSidebar.tsx # Project + Session + Backlog
-│       ├── SessionView.tsx    # Todo/Done kanban board
+│   ├── UnifiedSidebar.tsx # Project + Session lists
+│       ├── SessionView.tsx    # Queue/Completed tasks kanban board
 │       ├── TaskCard.tsx
 │       ├── TaskDetailModal.tsx
 │       ├── HumanInTheLoop.tsx
