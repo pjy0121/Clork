@@ -136,12 +136,11 @@ export default function SessionView() {
 
   // Extract result from events
   const extractResult = (events: TaskEvent[]): string => {
-    // First check for a complete result event or task_completed event
+    // First check for a complete result event
     const resultEvent = events.find(e => {
       try {
         const data = JSON.parse(e.data);
-        return (data.type === 'result' && data.result) ||
-               (data.type === 'task_completed' && data.result);
+        return data.type === 'result' && data.result;
       } catch {
         return false;
       }
@@ -780,7 +779,7 @@ function EventLine({ event }: { event: TaskEvent }) {
     );
   }
 
-  if (data.type === 'result' || data.type === 'task_completed') {
+  if (data.type === 'result') {
     const cost = data.total_cost_usd ?? data.cost_usd;
     return (
       <div className="text-emerald-400 mb-2 border-t border-gray-800 pt-1.5 mt-1.5">
