@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import ImageUpload, { UploadedImage } from './ImageUpload';
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -17,11 +18,13 @@ export default function AddTaskModal({
 }: AddTaskModalProps) {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
+  const [images, setImages] = useState<UploadedImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setPrompt('');
+      setImages([]);
     }
   }, [isOpen]);
 
@@ -31,7 +34,15 @@ export default function AddTaskModal({
     if (!prompt.trim()) return;
     setIsLoading(true);
     try {
-      await onAdd(prompt.trim());
+      let finalPrompt = prompt.trim();
+
+      // Append image paths to the prompt if there are images
+      if (images.length > 0) {
+        const imagePaths = images.map(img => `${img.name}: ${img.path}`).join('\n');
+        finalPrompt = `${finalPrompt}\n\n${imagePaths}`;
+      }
+
+      await onAdd(finalPrompt);
       onClose();
     } catch {
       // 오류는 부모 컴포넌트에서 처리
@@ -82,6 +93,11 @@ export default function AddTaskModal({
               {t('tasks.quickAddHint')}
             </p>
           </div>
+          <ImageUpload
+            images={images}
+            onImagesChange={setImages}
+            maxImages={5}
+          />
           <div className="flex items-center justify-end gap-2">
             <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button

@@ -48,7 +48,7 @@
     "unlinked": "Unlinked from chain",
     "linkedBehind": "Linked behind {{name}}",
     "independent": "Became independent from chain",
-    "isolateChain": "Isolate Session Chain",
+    "isolateChain": "Isolate session chain",
     "settings": "Project Settings",
     "saveSuccess": "Project settings saved",
     "deleteSuccess": "Project deleted",
@@ -61,10 +61,10 @@
     "noTaskSelected": "No Task Selected",
     "selectTaskMsg": "Select a task from the side panel to view details.",
     "backlog": "Backlog",
-    "completed": "Completed Tasks",
+    "completed": "Completed tasks",
     "newTaskPrompt": "Describe the new task...",
-    "runningTask": "Running Task",
-    "taskQueue": "Task Queue",
+    "runningTask": "Running task",
+    "taskQueue": "Task queue",
     "result": "Result",
     "logs": "Raw CLI Logs",
     "noLogs": "No logs available.",
@@ -263,5 +263,12 @@
   },
   "app": {
     "selectProject": "Please select a project or create a new one"
+  },
+  "images": {
+    "uploadedImages": "Uploaded Images",
+    "pasteHint": "Paste images with Ctrl+V (Max {{max}} images)",
+    "maxImagesError": "Maximum {{max}} images allowed",
+    "uploadError": "Failed to upload image. Please try again.",
+    "uploading": "Uploading image..."
   }
 }

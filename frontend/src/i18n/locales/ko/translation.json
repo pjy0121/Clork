@@ -48,7 +48,7 @@
     "unlinked": "체인에서 분리되었습니다",
     "linkedBehind": "'{{name}}' 뒤에 연결되었습니다",
     "independent": "체인에서 독립했습니다",
-    "isolateChain": "ISOLATE SESSION CHAIN",
+    "isolateChain": "Isolate Session Chain",
     "settings": "프로젝트 설정",
     "saveSuccess": "프로젝트 설정이 저장되었습니다",
     "deleteSuccess": "프로젝트가 삭제되었습니다",
@@ -170,8 +170,8 @@
     "full": "전체 허용 (Full)",
     "joinChain": "여기에 놓아 체인에 합류",
     "sessionChain": "{{count}}개 세션 체인",
-    "active": "ACTIVE",
-    "offline": "OFFLINE",
+    "active": "Active",
+    "offline": "Offline",
     "sessionCreated": "세션이 생성되었습니다",
     "projectCreated": "프로젝트가 생성되었습니다",
     "projectDeleted": "프로젝트가 삭제되었습니다",
@@ -263,5 +263,12 @@
   },
   "app": {
     "selectProject": "프로젝트를 선택하거나 새 프로젝트를 만들어주세요"
+  },
+  "images": {
+    "uploadedImages": "업로드된 이미지",
+    "pasteHint": "Ctrl+V로 이미지 붙여넣기 (최대 {{max}}개)",
+    "maxImagesError": "최대 {{max}}개 이미지까지 가능합니다",
+    "uploadError": "이미지 업로드에 실패했습니다. 다시 시도해주세요.",
+    "uploading": "이미지 업로드 중..."
   }
 }

@@ -7,6 +7,7 @@ import projectRoutes from './routes/projects';
 import sessionRoutes from './routes/sessions';
 import taskRoutes from './routes/tasks';
 import settingsRoutes from './routes/settings';
+import uploadsRoutes from './routes/uploads';
 import { taskRunner } from './services/taskRunner';
 import { claudeService } from './services/claudeService';
 
@@ -32,6 +33,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 // Serve frontend in production
 const frontendPath = path.join(__dirname, '..', '..', 'frontend', 'dist');

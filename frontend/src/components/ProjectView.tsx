@@ -55,10 +55,10 @@ function DraggableSessionCard({ session, tasks }: { session: Session; tasks: Tas
   const nextTask = todoTasks[0];
 
   const displayPrompt = runningTask
-    ? { label: t('projects.running'), prompt: runningTask.prompt, labelClass: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold text-[10px] tracking-wider uppercase rounded-md' }
+    ? { label: t('projects.running'), prompt: runningTask.prompt, labelClass: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold text-[10px] tracking-wider rounded-md' }
     : nextTask
-      ? { label: t('projects.next'), prompt: nextTask.prompt, labelClass: 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold text-[10px] tracking-wider uppercase rounded-md' }
-      : { label: t('projects.idle'), prompt: t('projects.noActiveTasks'), labelClass: 'bg-slate-50 dark:bg-[#111936] text-slate-500 dark:text-[#8492c4] border border-slate-300 dark:border-[#8492c4]/20 font-semibold text-[10px] tracking-wider uppercase rounded-md' };
+      ? { label: t('projects.next'), prompt: nextTask.prompt, labelClass: 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold text-[10px] tracking-wider rounded-md' }
+      : { label: t('projects.idle'), prompt: t('projects.noActiveTasks'), labelClass: 'bg-slate-50 dark:bg-[#111936] text-slate-500 dark:text-[#8492c4] border border-slate-300 dark:border-[#8492c4]/20 font-semibold text-[10px] tracking-wider rounded-md' };
 
   const config = STATUS_CONFIG[session.status];
   const Icon = config.icon;
@@ -135,10 +135,10 @@ function DraggableSessionCard({ session, tasks }: { session: Session; tasks: Tas
           {(todoTasks.length > 0 || runningTask) && (
             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-[#8492c4]/10 text-xs font-semibold">
               {runningTask && (
-                <span className="text-indigo-400 flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> RUNNING</span>
+                <span className="text-indigo-400 flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> {t('projects.running')}</span>
               )}
               {todoTasks.length > 0 && (
-                <span className="text-slate-500 dark:text-[#8492c4]">• QUEUE: {todoTasks.length}</span>
+                <span className="text-slate-500 dark:text-[#8492c4]">• {t('projects.queue')}: {todoTasks.length}</span>
               )}
             </div>
           )}
@@ -174,7 +174,7 @@ function DroppableChain({ chain, index, tasks }: { chain: SessionChain; index: n
       }`}>
       {isMulti && (
         <div className="mb-4 flex items-center gap-3 px-2">
-          <span className="text-xs font-bold text-slate-500 dark:text-[#8492c4] uppercase">{t('projects.linkedChain')} {index + 1}</span>
+          <span className="text-xs font-bold text-slate-500 dark:text-[#8492c4]">{t('projects.linkedChain')} {index + 1}</span>
           <div className="h-px flex-1 bg-gradient-to-r from-[#8492c4]/20 to-transparent" />
         </div>
       )}

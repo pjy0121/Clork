@@ -661,7 +661,7 @@ function SectionLabel({ icon, label, extra }: { icon?: React.ReactNode; label: s
   return (
     <div className="flex items-center gap-2 mb-2">
       {icon}
-      <span className="text-xs font-bold text-slate-500 dark:text-[#8492c4] uppercase flex-1">{label}</span>
+      <span className="text-xs font-bold text-slate-500 dark:text-[#8492c4] flex-1">{label}</span>
       {extra}
     </div>
   );
