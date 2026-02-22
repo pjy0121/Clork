@@ -433,12 +433,30 @@ export const useStore = create<AppState>((set, get) => ({
     set((s) => ({ taskEvents: { ...s.taskEvents, [taskId]: events } }));
   },
   addTaskEvent: (taskId, event) => {
-    set((s) => ({
-      taskEvents: {
-        ...s.taskEvents,
-        [taskId]: [...(s.taskEvents[taskId] || []), event],
-      },
-    }));
+    set((s) => {
+      const existingEvents = s.taskEvents[taskId] || [];
+
+      // Check if event already exists by ID to prevent duplicates
+      if (existingEvents.some(e => e.id === event.id)) {
+        console.log('[Store] Skipping duplicate event:', event.id);
+        return s;
+      }
+
+      // Debug: Log result events
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'result') {
+          console.log('[Store] Adding result event:', event.id, data.type);
+        }
+      } catch {}
+
+      return {
+        taskEvents: {
+          ...s.taskEvents,
+          [taskId]: [...existingEvents, event],
+        },
+      };
+    });
   },
 
   // ===== Human In The Loop =====

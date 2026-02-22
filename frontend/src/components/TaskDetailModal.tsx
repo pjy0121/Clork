@@ -52,6 +52,27 @@ export default function TaskDetailModal() {
     }
   }, [taskDetailId]);
 
+  // Debug: Check for duplicate events
+  useEffect(() => {
+    if (events.length > 0) {
+      const resultEvents = events.filter(e => {
+        try {
+          const data = JSON.parse(e.data);
+          return data.type === 'result';
+        } catch {
+          return false;
+        }
+      });
+      if (resultEvents.length > 1) {
+        console.log('Multiple result events found:', resultEvents.length);
+        resultEvents.forEach((e, i) => {
+          const data = JSON.parse(e.data);
+          console.log(`Result event ${i}:`, e.id, data.type, data.subtype);
+        });
+      }
+    }
+  }, [events]);
+
   if (!taskDetailId || !task) return null;
 
   const statusConfig = {
@@ -160,9 +181,14 @@ export default function TaskDetailModal() {
               </div>
             ) : (
               <div className="bg-slate-900/40 dark:bg-[#0b0f19] border border-slate-200 dark:border-[#8492c4]/10 rounded-xl p-6 font-mono text-[11px] leading-loose max-h-[40rem] overflow-y-auto scrollbar-thin shadow-inner">
-                {events.map((evt) => (
-                  <DetailEventLine key={evt.id} event={evt} />
-                ))}
+                {events.map((evt, index) => {
+                  // Debug: Log each event being rendered
+                  const data = JSON.parse(evt.data);
+                  if (data.type === 'result' || data.type === 'task_completed') {
+                    console.log(`Rendering event ${index}:`, evt.id, data.type, evt.eventType);
+                  }
+                  return <DetailEventLine key={evt.id} event={evt} />;
+                })}
               </div>
             )}
           </div>

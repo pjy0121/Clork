@@ -445,8 +445,8 @@ export default function UnifiedSidebar() {
 
       {/* New Project Modal */}
       {showNewProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4" onClick={() => setShowNewProject(false)}>
-          <div className="dashboard-panel p-8 w-full max-w-md mx-4 animate-fade-in shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4">
+          <div className="dashboard-panel p-8 w-full max-w-md mx-4 animate-fade-in shadow-2xl">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-bold text-white tracking-tight">{t('sidebar.newProject')}</h2>
               <button onClick={() => setShowNewProject(false)} className="btn-icon"><X size={20} /></button>
@@ -501,8 +501,8 @@ export default function UnifiedSidebar() {
 
       {/* New Session Modal */}
       {showNewSessionPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4" onClick={() => setShowNewSessionPrompt(false)}>
-          <div className="dashboard-panel p-8 w-full max-w-xl mx-4 animate-fade-in shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-[#0b0f19]/80 backdrop-blur-sm p-4">
+          <div className="dashboard-panel p-8 w-full max-w-xl mx-4 animate-fade-in shadow-2xl">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-bold text-white tracking-tight">{t('sidebar.newSession')}</h2>
               <button onClick={() => setShowNewSessionPrompt(false)} className="btn-icon"><X size={20} /></button>

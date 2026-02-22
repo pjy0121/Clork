@@ -76,6 +76,14 @@ export default function App() {
     });
 
     socket.on('task:progress', (data: { taskId: string; event: TaskEvent }) => {
+      // Debug: Log result events
+      try {
+        const eventData = JSON.parse(data.event.data);
+        if (eventData.type === 'result') {
+          console.log('[Socket] Received result event:', data.event.id, eventData.type);
+        }
+      } catch {}
+
       // Add event to the task's event list
       useStore.getState().addTaskEvent(data.taskId, data.event);
     });

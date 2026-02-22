@@ -136,11 +136,12 @@ export default function SessionView() {
 
   // Extract result from events
   const extractResult = (events: TaskEvent[]): string => {
-    // First check for a complete result event
+    // First check for a complete result event or task_completed event
     const resultEvent = events.find(e => {
       try {
         const data = JSON.parse(e.data);
-        return data.type === 'result' && data.result;
+        return (data.type === 'result' && data.result) ||
+               (data.type === 'task_completed' && data.result);
       } catch {
         return false;
       }
@@ -160,7 +161,7 @@ export default function SessionView() {
         const data = JSON.parse(e.data);
 
         // Skip certain system events
-        if (data.type === 'task_started' || data.type === 'task_completed') return;
+        if (data.type === 'task_started') return;
         if (data.type === 'rate_limit_event' && data.rate_limit_info?.status === 'allowed') return;
 
         // Assistant messages - include all content types
@@ -779,7 +780,7 @@ function EventLine({ event }: { event: TaskEvent }) {
     );
   }
 
-  if (data.type === 'result') {
+  if (data.type === 'result' || data.type === 'task_completed') {
     const cost = data.total_cost_usd ?? data.cost_usd;
     return (
       <div className="text-emerald-400 mb-2 border-t border-gray-800 pt-1.5 mt-1.5">
