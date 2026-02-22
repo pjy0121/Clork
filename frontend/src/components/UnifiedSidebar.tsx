@@ -304,7 +304,7 @@ export default function UnifiedSidebar() {
       </button>
 
       {/* Projects and Sessions */}
-      <div className="flex-1 overflow-y-scroll overflow-x-hidden scrollbar-thin">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           {projects.map((project) => {
             const isActive = project.id === activeProjectId;

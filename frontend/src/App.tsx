@@ -205,7 +205,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden relative">
         <div
           className={`flex-none flex flex-col h-full transition-all duration-300 ease-out ${sidebarOpen
-            ? 'w-[22rem] min-w-[20rem] max-w-[24rem] md:w-[22rem] md:min-w-[20rem] max-md:w-[19rem] max-md:min-w-[18rem] border-r border-slate-200 dark:border-[#8492c4]/10 overflow-visible'
+            ? 'w-[22rem] min-w-[20rem] max-w-[24rem] md:w-[22rem] md:min-w-[20rem] max-md:w-[19rem] max-md:min-w-[18rem] border-r border-slate-200 dark:border-[#8492c4]/10 overflow-hidden'
             : 'w-0 min-w-0 max-w-0 border-r-0 overflow-hidden'
             }`}
         >
