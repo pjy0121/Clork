@@ -428,6 +428,11 @@ function DetailEventLine({ event }: { event: TaskEvent }) {
     );
   }
 
+  if (data.type === 'task_completed') {
+    // Skip rendering task_completed events as they duplicate the result event
+    return null;
+  }
+
   if (data.type === 'error' || data.type === 'stderr') {
     return (
       <div className="group mb-4 border border-rose-500 bg-rose-500/5 rounded-xl p-4 flex items-start gap-4">
