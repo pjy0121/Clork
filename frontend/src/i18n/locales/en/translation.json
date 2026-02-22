@@ -263,5 +263,12 @@
   },
   "app": {
     "selectProject": "Please select a project or create a new one"
+  },
+  "images": {
+    "uploadedImages": "Uploaded Images",
+    "pasteHint": "Paste images with Ctrl+V (Max {{max}} images)",
+    "maxImagesError": "Maximum {{max}} images allowed",
+    "uploadError": "Failed to upload image. Please try again.",
+    "uploading": "Uploading image..."
   }
 }

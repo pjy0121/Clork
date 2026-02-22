@@ -222,4 +222,10 @@ export const settingsOps = {
   set: db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)'),
 };
 
+// Initialize image counter if not exists
+const imageCounterRow = settingsOps.get.get('imageCounter');
+if (!imageCounterRow) {
+  settingsOps.set.run('imageCounter', '0');
+}
+
 export default db;

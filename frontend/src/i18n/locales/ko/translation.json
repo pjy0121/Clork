@@ -263,5 +263,12 @@
   },
   "app": {
     "selectProject": "프로젝트를 선택하거나 새 프로젝트를 만들어주세요"
+  },
+  "images": {
+    "uploadedImages": "업로드된 이미지",
+    "pasteHint": "Ctrl+V로 이미지 붙여넣기 (최대 {{max}}개)",
+    "maxImagesError": "최대 {{max}}개 이미지까지 가능합니다",
+    "uploadError": "이미지 업로드에 실패했습니다. 다시 시도해주세요.",
+    "uploading": "이미지 업로드 중..."
   }
 }

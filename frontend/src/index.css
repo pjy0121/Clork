@@ -134,7 +134,7 @@
 
     /* ===== Sidebar ===== */
     .sidebar {
-        @apply flex flex-col bg-slate-50 dark:bg-[#111936] border-r border-slate-200 dark:border-[#8492c4]/10 relative z-10;
+        @apply h-full flex flex-col bg-slate-50 dark:bg-[#111936] border-r border-slate-200 dark:border-[#8492c4]/10 relative z-10 overflow-hidden;
     }
 }
 
@@ -142,7 +142,7 @@
 @layer utilities {
     .scrollbar-thin {
         scrollbar-width: thin;
-        scrollbar-color: #212946 transparent;
+        scrollbar-color: #3a4468 transparent;
     }
 }
 
@@ -156,12 +156,13 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #212946;
+    background-color: #3a4468;
     border-radius: 9999px;
+    border: 1px solid transparent;
 }
 
 .scrollbar-thin:hover::-webkit-scrollbar-thumb {
-    background-color: #29314f;
+    background-color: #4a5578;
 }
 
 @layer components {

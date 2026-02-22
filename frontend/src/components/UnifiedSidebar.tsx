@@ -36,6 +36,7 @@ import { buildChains, type SessionChain } from '../utils/sessionUtils';
 import toast from 'react-hot-toast';
 import EditSessionModal from './EditSessionModal';
 import ConfirmModal from './ConfirmModal';
+import ImageUpload, { UploadedImage } from './ImageUpload';
 import { useTranslation } from 'react-i18next';
 
 const STATUS_CONFIG: Record<SessionStatus, { icon: any; color: string; labelKey: string }> = {
@@ -72,6 +73,7 @@ export default function UnifiedSidebar() {
   const [newProjectPermission, setNewProjectPermission] = useState('default');
   const [showNewSessionPrompt, setShowNewSessionPrompt] = useState(false);
   const [newSessionPrompt, setNewSessionPrompt] = useState('');
+  const [newSessionImages, setNewSessionImages] = useState<UploadedImage[]>([]);
   const [selectedProjectForNewSession, setSelectedProjectForNewSession] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [showDeleteSessionConfirm, setShowDeleteSessionConfirm] = useState<{ id: string; name: string; isRunning: boolean } | null>(null);
@@ -139,6 +141,7 @@ export default function UnifiedSidebar() {
   const openNewSessionModal = (projectId: string) => {
     setSelectedProjectForNewSession(projectId);
     setNewSessionPrompt('');
+    setNewSessionImages([]);
     setShowNewSessionPrompt(true);
   };
 
@@ -148,10 +151,19 @@ export default function UnifiedSidebar() {
       const ps = sessionsByProject[selectedProjectForNewSession] || [];
       const nums = ps.map((s) => { const m = s.name.match(/^#(\d+)/); return m ? parseInt(m[1], 10) : 0; }).filter(n => n > 0);
       const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-      const session = await createSession(selectedProjectForNewSession, `#${next}`, undefined, newSessionPrompt.trim());
+
+      // Build the final prompt with images
+      let finalPrompt = newSessionPrompt.trim();
+      if (newSessionImages.length > 0) {
+        const imagePaths = newSessionImages.map(img => `${img.name}: ${img.path}`).join('\n');
+        finalPrompt = `${finalPrompt}\n\n${imagePaths}`;
+      }
+
+      const session = await createSession(selectedProjectForNewSession, `#${next}`, undefined, finalPrompt);
       setActiveProject(selectedProjectForNewSession);
       setActiveSession(session.id);
       setNewSessionPrompt('');
+      setNewSessionImages([]);
       setShowNewSessionPrompt(false);
       setSelectedProjectForNewSession(null);
       await fetchSessions(selectedProjectForNewSession);
@@ -293,7 +305,7 @@ export default function UnifiedSidebar() {
   if (!sidebarOpen) return null;
 
   return (
-    <div className="sidebar flex-1 flex flex-col sidebar-enter w-80 relative bg-slate-50 dark:bg-[#111936] border-r border-slate-200 dark:border-[#8492c4]/10 group/sidebar transition-all duration-300">
+    <div className="sidebar h-full flex-1 flex flex-col sidebar-enter w-80 relative bg-slate-50 dark:bg-[#111936] border-r border-slate-200 dark:border-[#8492c4]/10 group/sidebar transition-all duration-300">
       {/* Collapse Button */}
       <button
         onClick={toggleSidebar}
@@ -509,6 +521,11 @@ export default function UnifiedSidebar() {
                 />
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('sidebar.ctrlEnterToCreate')}</p>
               </div>
+              <ImageUpload
+                images={newSessionImages}
+                onImagesChange={setNewSessionImages}
+                maxImages={5}
+              />
               <div className="flex gap-3 justify-end pt-4 mt-2">
                 <button onClick={() => setShowNewSessionPrompt(false)} className="btn-secondary">{t('common.cancel')}</button>
                 <button

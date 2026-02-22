@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { Task } from '../types';
 import { useTranslation } from 'react-i18next';
+import ImageUpload, { UploadedImage } from './ImageUpload';
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -18,11 +19,41 @@ export default function EditTaskModal({
 }: EditTaskModalProps) {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
+  const [images, setImages] = useState<UploadedImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (task) {
-      setPrompt(task.prompt);
+      // Extract text prompt and existing image paths from the task prompt
+      const lines = task.prompt.split('\n');
+      const imagePattern = /^Image #\d+: (.+)$/;
+      const textLines: string[] = [];
+      const existingImages: UploadedImage[] = [];
+
+      let inImageSection = false;
+      for (const line of lines) {
+        const imageMatch = line.match(imagePattern);
+        if (imageMatch) {
+          inImageSection = true;
+          // Parse existing image reference
+          const numberMatch = line.match(/Image #(\d+)/);
+          if (numberMatch) {
+            existingImages.push({
+              name: `Image #${numberMatch[1]}`,
+              path: imageMatch[1],
+              number: parseInt(numberMatch[1]),
+              size: 0,
+              mimetype: 'image/unknown',
+              previewUrl: `http://localhost:3001/api/uploads/image/${numberMatch[1]}`
+            });
+          }
+        } else if (!inImageSection || line.trim() !== '') {
+          textLines.push(line);
+        }
+      }
+
+      setPrompt(textLines.join('\n').trim());
+      setImages(existingImages);
     }
   }, [task]);
 
@@ -32,7 +63,15 @@ export default function EditTaskModal({
     if (!prompt.trim()) return;
     setIsLoading(true);
     try {
-      await onSave(task.id, prompt.trim());
+      let finalPrompt = prompt.trim();
+
+      // Append image paths to the prompt if there are images
+      if (images.length > 0) {
+        const imagePaths = images.map(img => `${img.name}: ${img.path}`).join('\n');
+        finalPrompt = `${finalPrompt}\n\n${imagePaths}`;
+      }
+
+      await onSave(task.id, finalPrompt);
       onClose();
     } catch {
       // 오류는 부모 컴포넌트에서 처리
@@ -78,6 +117,11 @@ export default function EditTaskModal({
               {t('tasks.quickSaveHint')}
             </p>
           </div>
+          <ImageUpload
+            images={images}
+            onImagesChange={setImages}
+            maxImages={5}
+          />
           <div className="flex items-center justify-end gap-2">
             <button onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button
