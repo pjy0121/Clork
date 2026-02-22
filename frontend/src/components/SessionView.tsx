@@ -783,7 +783,6 @@ function EventLine({ event }: { event: TaskEvent }) {
     const cost = data.total_cost_usd ?? data.cost_usd;
     return (
       <div className="text-emerald-400 mb-2 border-t border-gray-800 pt-1.5 mt-1.5">
-        <div>✓ [{t('sessions.event.resultLabel')}]</div>
         <div className="prose dark:prose-invert prose-xs max-w-none mt-1
           prose-pre:bg-slate-100 dark:prose-pre:bg-gray-900 prose-pre:text-slate-800 dark:prose-pre:text-gray-300
           prose-code:text-cyan-700 dark:prose-code:text-cyan-400 prose-code:bg-slate-100 dark:prose-code:bg-gray-900
