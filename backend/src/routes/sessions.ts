@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { sessionOps, taskOps } from '../database';
 import { Session, Task } from '../types';
-import { taskRunner } from '../services/taskRunner';
+import { taskRunner } from '../services/TaskRunner';
 
 const router = Router();
 
@@ -49,6 +49,14 @@ router.post('/', (req: Request, res: Response) => {
       const taskId = randomUUID();
       const taskOrder = 0;
       taskOps.create.run(taskId, projectId, id, prompt.trim(), 'pending', 'todo', taskOrder);
+
+      // Auto-start if session is active
+      // Note: session is created with isActive: 0 (false) by default in database.ts? 
+      // Let's check sessionOps.create.
+      const session = sessionOps.getById.get(id) as Session | undefined;
+      if (session && session.isActive) {
+        taskRunner.processSession(id);
+      }
     }
 
     const session = sessionOps.getById.get(id);

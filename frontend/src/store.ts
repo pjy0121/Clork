@@ -381,7 +381,7 @@ export const useStore = create<AppState>((set, get) => ({
     set({ tasks });
   },
   createTask: async (data) => {
-    const task = await tasksApi.create(data);
+    const task = await tasksApi.create({ ...data, location: data.location || 'todo' });
     set((s) => ({ tasks: [...s.tasks, task] }));
     return task;
   },

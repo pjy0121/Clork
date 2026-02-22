@@ -7,14 +7,12 @@ interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (prompt: string) => Promise<void>;
-  location: 'todo' | 'backlog';
 }
 
 export default function AddTaskModal({
   isOpen,
   onClose,
   onAdd,
-  location,
 }: AddTaskModalProps) {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
@@ -57,10 +55,8 @@ export default function AddTaskModal({
     }
   };
 
-  const title = location === 'todo' ? t('tasks.addTitleQueue') : t('tasks.addTitleBacklog');
-  const placeholder = location === 'todo'
-    ? t('tasks.placeholderQueue')
-    : t('tasks.placeholderBacklog');
+  const title = t('tasks.addTitleQueue');
+  const placeholder = t('tasks.placeholderQueue');
 
   return (
     <div

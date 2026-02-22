@@ -5,7 +5,6 @@ export interface Project {
   rootDirectory: string;
   defaultModel: string;
   permissionMode: 'plan' | 'default' | 'full';
-  autoProcessBacklog: boolean;
   maxTasksPerSession: number;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +29,7 @@ export interface Session {
 
 // ========== Task ==========
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'aborted';
-export type TaskLocation = 'queue' | 'backlog' | 'todo' | 'done';
+export type TaskLocation = 'todo' | 'done';
 
 export interface Task {
   id: string;

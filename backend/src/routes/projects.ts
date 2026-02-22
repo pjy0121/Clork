@@ -63,7 +63,6 @@ router.put('/:id', (req: Request, res: Response) => {
       rootDirectory || existing.rootDirectory,
       defaultModel || existing.defaultModel,
       permissionMode || existing.permissionMode,
-      autoProcessBacklog !== undefined ? (autoProcessBacklog ? 1 : 0) : (existing.autoProcessBacklog ? 1 : 0),
       maxTasksPerSession || existing.maxTasksPerSession,
       req.params.id
     );

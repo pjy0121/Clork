@@ -32,7 +32,7 @@ const upload = multer({
 // Get current image counter
 function getNextImageNumber(): number {
   const result = settingsOps.get.get('imageCounter');
-  const current = result ? parseInt(result.value) : 0;
+  const current = result ? parseInt((result as any).value) : 0;
   const next = current + 1;
   settingsOps.set.run('imageCounter', next.toString());
   return current;

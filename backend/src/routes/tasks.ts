@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { taskOps, eventOps, sessionOps } from '../database';
 import { Task, Session } from '../types';
-import { taskRunner } from '../services/taskRunner';
+import { taskRunner } from '../services/TaskRunner';
 
 const router = Router();
 
@@ -23,10 +23,6 @@ router.get('/', (req: Request, res: Response) => {
       return res.json(tasks);
     }
     if (projectId) {
-      if (location === 'backlog') {
-        const tasks = taskOps.getBacklog.all(projectId as string);
-        return res.json(tasks);
-      }
       const tasks = taskOps.getByProject.all(projectId as string);
       return res.json(tasks);
     }
@@ -68,17 +64,20 @@ router.post('/', (req: Request, res: Response) => {
     }
 
     const id = randomUUID();
-    const taskLocation = location || (sessionId ? 'todo' : 'backlog');
+    const taskLocation = location || 'todo';
 
-    let taskOrder: number;
-    if (taskLocation === 'backlog') {
-      taskOrder = ((taskOps.getMaxBacklogOrder.get(projectId) as any)?.maxOrder ?? -1) + 1;
-    } else {
-      taskOrder = ((taskOps.getMaxTodoOrder.get(sessionId) as any)?.maxOrder ?? -1) + 1;
-    }
+    const taskOrder = ((taskOps.getMaxTodoOrder.get(sessionId || null) as any)?.maxOrder ?? -1) + 1;
 
     taskOps.create.run(id, projectId, sessionId || null, prompt, 'pending', taskLocation, taskOrder);
     const task = taskOps.getById.get(id);
+
+    // Auto-start if session is active
+    if (sessionId) {
+      const session = sessionOps.getById.get(sessionId) as Session | undefined;
+      if (session && session.isActive) {
+        taskRunner.processSession(sessionId);
+      }
+    }
 
     res.status(201).json(task);
   } catch (error: any) {
@@ -124,16 +123,16 @@ router.post('/:id/move', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'location is required' });
     }
 
-    // For backlog: keep sessionId if provided (session-level backlog), or null for project-level
-    const newSessionId = location === 'queue' ? null : (sessionId !== undefined ? (sessionId || null) : existing.sessionId);
+    // Move to todo (queue)
+    const newSessionId = sessionId !== undefined ? (sessionId || null) : existing.sessionId;
     let newOrder = taskOrder;
     if (newOrder === undefined) {
-      if (location === 'backlog') {
-        newOrder = ((taskOps.getMaxBacklogOrder.get(existing.projectId) as any)?.maxOrder ?? -1) + 1;
-      } else if (location === 'queue') {
+      if (location === 'queue') {
         newOrder = ((taskOps.getMaxQueueOrder.get(existing.projectId) as any)?.maxOrder ?? -1) + 1;
       } else if (newSessionId) {
         newOrder = ((taskOps.getMaxTodoOrder.get(newSessionId) as any)?.maxOrder ?? -1) + 1;
+      } else {
+        newOrder = 0; // Fallback
       }
     }
 
@@ -172,7 +171,7 @@ router.post('/:id/abort', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Task is not running' });
     }
 
-    const success = taskRunner.abortTask(req.params.id);
+    const success = taskRunner.abortTask(req.params.id as string);
     if (!success) {
       return res.status(500).json({ error: 'Failed to abort task' });
     }
@@ -193,7 +192,7 @@ router.post('/:id/human-response', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'response is required' });
     }
 
-    const success = taskRunner.sendHumanResponse(req.params.id, response);
+    const success = taskRunner.sendHumanResponse(req.params.id as string, response);
     if (!success) {
       return res.status(400).json({ error: 'Task is not waiting for input' });
     }
@@ -230,7 +229,7 @@ router.delete('/:id', (req: Request, res: Response) => {
     const sessionId = existing.sessionId;
 
     if (existing.status === 'running') {
-      taskRunner.abortTask(req.params.id);
+      taskRunner.abortTask(req.params.id as string);
     }
     taskOps.delete.run(req.params.id);
 

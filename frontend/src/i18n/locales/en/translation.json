@@ -12,7 +12,8 @@
     "hourShort": "h",
     "language": "en",
     "ok": "OK",
-    "send": "Send"
+    "send": "Send",
+    "add": "Add"
   },
   "settings": {
     "title": "Settings",
@@ -60,7 +61,6 @@
   "sessions": {
     "noTaskSelected": "No Task Selected",
     "selectTaskMsg": "Select a task from the side panel to view details.",
-    "backlog": "Backlog",
     "completed": "Completed tasks",
     "newTaskPrompt": "Describe the new task...",
     "runningTask": "Running task",
@@ -87,7 +87,7 @@
     "end": "End",
     "cost": "Cost",
     "duration": "Duration",
-    "copyToBacklog": "Copy to Backlog",
+    "copyToQueue": "Copy to Queue",
     "event": {
       "systemInit": " [System] Session started  Model: {{model}}",
       "taskStarted": " [Started] {{prompt}}",
@@ -103,10 +103,14 @@
       "inputNeeded": "Input Required",
       "awaitingUserInput": "Awaiting user input...",
       "abortedLabel": "Aborted",
-      "abortedByUser": "Task aborted by user"
+      "abortedByUser": "Task aborted by user",
+      "thinkingTitle": "🤔 Thinking...",
+      "usingTool": "Using tool: {{tool}}",
+      "toolResultTitle": "Tool result:",
+      "errorTitle": "Error:",
+      "truncated": "(truncated)"
     },
     "noQueuedTasks": "No tasks in queue",
-    "dragFromBacklog": "Drag from backlog",
     "empty": "Empty"
   },
   "tasks": {
@@ -116,8 +120,7 @@
     "inputReq": "Input Required",
     "done": "Done",
     "error": "Error",
-    "copiedToBacklog": "Copied to backlog",
-    "movedToBacklog": "Moved to backlog",
+    "copiedToQueue": "Copied to queue",
     "movedToQueue": "Moved to queue",
     "taskDeleted": "Task deleted",
     "deleteTask": "Delete Task",
@@ -134,13 +137,10 @@
     "saving": "Saving...",
     "addTask": "Add Task",
     "addToQueue": "Add to Queue",
-    "addToBacklog": "Add to Backlog",
     "addAndRun": "Add and Run",
     "multipleTasksTip": "Enter multiple tasks separated by new lines",
     "addTitleQueue": "Add Task to Queue",
-    "addTitleBacklog": "Add Task to Backlog",
     "placeholderQueue": "Describe the task in detail...",
-    "placeholderBacklog": "Describe an idea or task for later...",
     "quickAddHint": "Ctrl+Enter to add quickly",
     "adding": "Adding..."
   },

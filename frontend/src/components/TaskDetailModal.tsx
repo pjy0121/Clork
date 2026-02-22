@@ -27,6 +27,7 @@ export default function TaskDetailModal() {
     fetchTaskEvents,
     createTask,
     activeProjectId,
+    activeSessionId,
   } = useStore();
   const { t } = useTranslation();
 
@@ -61,15 +62,16 @@ export default function TaskDetailModal() {
     } catch { }
   }
 
-  const handleCopyToBacklog = async () => {
+  const handleCopyToQueue = async () => {
     try {
       await createTask({
         projectId: task.projectId,
         prompt: task.prompt,
-        location: 'backlog',
+        location: 'todo',
+        sessionId: activeSessionId || undefined,
       });
       setTaskDetailId(null);
-      toast.success(t('tasks.copiedToBacklog'));
+      toast.success(t('tasks.copiedToQueue'));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -160,11 +162,11 @@ export default function TaskDetailModal() {
             {t('common.close')}
           </button>
           <button
-            onClick={handleCopyToBacklog}
+            onClick={handleCopyToQueue}
             className="btn-primary inline-flex items-center gap-2 px-6 py-2 text-sm font-semibold"
           >
             <Copy size={16} />
-            {t('sessions.copyToBacklog')}
+            {t('sessions.copyToQueue')}
           </button>
         </div>
       </div>

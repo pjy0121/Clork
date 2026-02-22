@@ -8,7 +8,7 @@ import sessionRoutes from './routes/sessions';
 import taskRoutes from './routes/tasks';
 import settingsRoutes from './routes/settings';
 import uploadsRoutes from './routes/uploads';
-import { taskRunner } from './services/taskRunner';
+import { taskRunner } from './services/TaskRunner';
 import { claudeService } from './services/claudeService';
 
 const PORT = process.env.PORT || 3001;
@@ -69,7 +69,7 @@ io.on('connection', (socket) => {
     taskRunner.processSession(data.sessionId);
   });
 
-  socket.on('disconnect', () => {});
+  socket.on('disconnect', () => { });
 });
 
 // Start server

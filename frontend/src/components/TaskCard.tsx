@@ -172,48 +172,19 @@ export default function TaskCard({ task, isNext, showActions = true, isDone, onE
                           projectId: task.projectId,
                           sessionId: activeSessionId || undefined,
                           prompt: task.prompt,
-                          location: 'backlog',
+                          location: 'todo',
                         });
-                        toast.success(t('tasks.copiedToBacklog'));
+                        toast.success(t('tasks.copiedToQueue'));
                       } catch (err: any) { toast.error(err.message); }
                     }}
                     className="p-1.5 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                    title="Copy"
+                    title="Copy to Queue"
                   >
                     <Copy size={16} />
                   </button>
                 </>
               )}
-              {task.status === 'pending' && !isDone && task.location === 'todo' && (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      await moveTask(task.id, { location: 'backlog', sessionId: activeSessionId! });
-                      toast.success(t('tasks.movedToBacklog'));
-                    } catch (err: any) { toast.error(err.message); }
-                  }}
-                  className="p-1.5 rounded-lg text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-                  title="Demote"
-                >
-                  <ArrowDown size={16} />
-                </button>
-              )}
-              {task.status === 'pending' && !isDone && task.location === 'backlog' && (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      await moveTask(task.id, { location: 'todo', sessionId: activeSessionId! });
-                      toast.success(t('tasks.movedToQueue'));
-                    } catch (err: any) { toast.error(err.message); }
-                  }}
-                  className="p-1.5 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                  title="Promote"
-                >
-                  <ArrowUp size={16} />
-                </button>
-              )}
+
               {task.status === 'pending' && !isDone && onEdit && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onEdit(task); }}

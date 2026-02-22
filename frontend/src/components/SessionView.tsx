@@ -59,7 +59,6 @@ export default function SessionView() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { t } = useTranslation();
-  const [backlogExpanded, setBacklogExpanded] = useState(true);
   const [doneExpanded, setDoneExpanded] = useState(true);
   const [showEventLog, setShowEventLog] = useState(false);
   const [newPrompt, setNewPrompt] = useState('');
@@ -90,14 +89,6 @@ export default function SessionView() {
     () =>
       sessionTasks
         .filter((t) => t.location === 'todo' && t.status === 'pending')
-        .sort((a, b) => a.taskOrder - b.taskOrder),
-    [sessionTasks]
-  );
-
-  const backlogTasks = useMemo(
-    () =>
-      sessionTasks
-        .filter((t) => t.location === 'backlog' && t.status === 'pending')
         .sort((a, b) => a.taskOrder - b.taskOrder),
     [sessionTasks]
   );
@@ -160,25 +151,67 @@ export default function SessionView() {
       return data.result || '';
     }
 
-    // Otherwise, accumulate all assistant message text blocks
-    // Claude streams responses, so we need to collect all text pieces
-    const allTextBlocks: string[] = [];
+    // Otherwise, build a comprehensive output from all relevant events
+    const output: string[] = [];
+    let hasAssistantContent = false;
 
     events.forEach(e => {
       try {
         const data = JSON.parse(e.data);
+
+        // Skip certain system events
+        if (data.type === 'task_started' || data.type === 'task_completed') return;
+        if (data.type === 'rate_limit_event' && data.rate_limit_info?.status === 'allowed') return;
+
+        // Assistant messages - include all content types
         if (data.type === 'assistant' && data.message?.content) {
+          hasAssistantContent = true;
           data.message.content.forEach((block: any) => {
             if (block.type === 'text' && block.text) {
-              allTextBlocks.push(block.text);
+              output.push(block.text);
+            } else if (block.type === 'thinking' && block.thinking) {
+              // Skip thinking blocks in Result view - they can be seen in System Logs
+            } else if (block.type === 'tool_use') {
+              // Skip tool use in Result view - details available in System Logs
             }
           });
         }
-      } catch { }
+
+        // Tool results - show only brief summary
+        else if (data.type === 'tool' && data.content) {
+          // Skip tool results in Result view for cleaner output
+          // Full details available in System Logs
+        }
+
+        // System messages - skip for cleaner result
+        else if (data.type === 'system' && data.text) {
+          // Skip system messages in Result view
+        }
+
+        // Error messages
+        else if (data.type === 'error') {
+          const errorMsg = data.text || data.error || JSON.stringify(data);
+          output.push(`\n❌ **Error:** ${errorMsg}\n`);
+        }
+
+        // Raw output - skip for cleaner result
+        else if (data.type === 'raw' && data.text && data.text.trim()) {
+          // Skip raw output in Result view
+        }
+      } catch {
+        // Handle non-JSON events
+        if (e.data && e.data.trim()) {
+          output.push(e.data);
+        }
+      }
     });
 
-    // Join all text blocks to form the complete response
-    return allTextBlocks.join('');
+    // If we have assistant content, return the accumulated output
+    if (hasAssistantContent || output.length > 0) {
+      return output.join('\n').trim();
+    }
+
+    return '';
   };
 
   const displayResult = displayTask ? extractResult(displayEvents) : '';
@@ -196,7 +229,7 @@ export default function SessionView() {
     useSensor(KeyboardSensor)
   );
 
-  const handleAddTask = async (prompt: string, location: string = 'backlog') => {
+  const handleAddTask = async (prompt: string, location: string = 'todo') => {
     if (!activeProjectId || !activeSessionId) return;
     await createTask({
       projectId: activeProjectId,
@@ -216,13 +249,7 @@ export default function SessionView() {
     } catch (err: any) { toast.error(err.message); }
   };
 
-  const handleMoveToBacklog = async (taskId: string) => {
-    try {
-      await moveTask(taskId, { location: 'backlog', sessionId: activeSessionId! });
-      if (activeProjectId) await fetchTasks(activeProjectId);
-      toast.success('백로그로 이동되었습니다');
-    } catch (err: any) { toast.error(err.message); }
-  };
+
 
   const handleSelectTask = (taskId: string) => {
     setActiveTaskId(taskId);
@@ -244,43 +271,28 @@ export default function SessionView() {
     const overId = over.id as string;
 
     const isFromTodo = todoTasks.some(t => t.id === activeId);
-    const isFromBacklog = backlogTasks.some(t => t.id === activeId);
-    if (!isFromTodo && !isFromBacklog) return;
+    if (!isFromTodo) return;
 
-    const sourceContainer = isFromTodo ? 'todo' : 'backlog';
+    const sourceContainer = 'todo';
 
-    let targetContainer: 'todo' | 'backlog';
+    let targetContainer: 'todo';
     if (overId === 'droppable-todo') {
       targetContainer = 'todo';
-    } else if (overId === 'droppable-backlog') {
-      targetContainer = 'backlog';
     } else if (todoTasks.some(t => t.id === overId)) {
       targetContainer = 'todo';
-    } else if (backlogTasks.some(t => t.id === overId)) {
-      targetContainer = 'backlog';
     } else {
       return;
     }
 
     if (sourceContainer === targetContainer) {
       if (activeId === overId) return;
-      const list = sourceContainer === 'todo' ? todoTasks : backlogTasks;
+      const list = todoTasks;
       const oldIndex = list.findIndex(t => t.id === activeId);
       const newIndex = list.findIndex(t => t.id === overId);
       if (oldIndex === -1 || newIndex === -1) return;
       const reordered = arrayMove(list, oldIndex, newIndex);
       const taskOrders = reordered.map((t, i) => ({ id: t.id, taskOrder: i }));
       await reorderTasks(taskOrders);
-    } else {
-      try {
-        if (targetContainer === 'todo') {
-          await handleMoveToTodo(activeId);
-        } else {
-          await handleMoveToBacklog(activeId);
-        }
-      } catch (err: any) {
-        toast.error(err.message);
-      }
     }
   };
 
@@ -351,46 +363,11 @@ export default function SessionView() {
                   </div>
                 </SortableContext>
                 {todoTasks.length === 0 && (
-                  <EmptySlot label={runningTask ? t('sessions.noQueuedTasks') : t('sessions.dragFromBacklog')} />
+                  <EmptySlot label={t('sessions.noQueuedTasks')} />
                 )}
               </DroppableSection>
 
-              {/* 백로그 */}
-              <DroppableSection id="droppable-backlog">
-                <button
-                  onClick={() => setBacklogExpanded(!backlogExpanded)}
-                  className="flex items-center gap-2 w-full text-left mb-4 group hover:bg-white dark:bg-[#1a223f] p-2 rounded-xl transition-colors border border-transparent hover:border-slate-200 dark:border-[#8492c4]/10"
-                >
-                  {backlogExpanded ? <ChevronDown size={16} className="text-slate-500 dark:text-[#8492c4]" /> : <ChevronRight size={16} className="text-slate-500 dark:text-[#8492c4]" />}
-                  <span className="text-sm font-semibold text-slate-500 dark:text-[#8492c4] flex-1">
-                    {t('sessions.backlog')} [{backlogTasks.length}]
-                  </span>
-                  <Archive size={16} className="text-slate-900 dark:text-[#d7dcec]" />
-                </button>
-                {backlogExpanded && (
-                  <>
-                    <SortableContext items={backlogTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2">
-                        {backlogTasks.map((task) => (
-                          <div
-                            key={task.id}
-                            className={`cursor-pointer transition-all rounded-xl ${displayTask?.id === task.id ? 'ring-2 ring-indigo-500 shadow-lg z-10 relative bg-white dark:bg-[#1a223f]' : ''}`}
-                            onClick={() => handleSelectTask(task.id)}
-                          >
-                            <TaskCard
-                              task={task}
-                              onEdit={(t) => { setEditingTask(t); setShowEditModal(true); }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </SortableContext>
-                    {backlogTasks.length === 0 && (
-                      <EmptySlot label={t('sessions.empty')} />
-                    )}
-                  </>
-                )}
-              </DroppableSection>
+
 
               {/* 완료됨 */}
               {doneTasks.length > 0 && (
@@ -447,13 +424,13 @@ export default function SessionView() {
               <button
                 onClick={() => {
                   if (newPrompt.trim()) {
-                    handleAddTask(newPrompt, 'backlog');
+                    handleAddTask(newPrompt, 'todo');
                     setNewPrompt('');
                   }
                 }}
                 disabled={!newPrompt.trim()}
                 className="btn-primary !px-3 !py-2 border-r-0 border-t-0"
-                title="ADD_TO_BACKLOG"
+                title="ADD_TO_QUEUE"
               >
                 <Plus size={14} />
               </button>
@@ -621,7 +598,6 @@ export default function SessionView() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddTask}
-        location="backlog"
       />
 
       <EditTaskModal

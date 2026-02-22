@@ -8,7 +8,7 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 const DB_PATH = path.join(DATA_DIR, 'clork.db');
-const db = new Database(DB_PATH);
+const db: any = new Database(DB_PATH);
 
 // Enable WAL mode for better concurrent performance
 db.pragma('journal_mode = WAL');
@@ -45,7 +45,7 @@ db.exec(`
     sessionId TEXT,
     prompt TEXT NOT NULL,
     status TEXT DEFAULT 'pending',
-    location TEXT DEFAULT 'backlog',
+    location TEXT DEFAULT 'todo',
     taskOrder INTEGER NOT NULL,
     createdAt TEXT DEFAULT (datetime('now')),
     updatedAt TEXT DEFAULT (datetime('now')),
@@ -77,13 +77,7 @@ try {
   // Column already exists
 }
 
-// Add autoProcessBacklog and maxTasksPerSession to projects
-try {
-  db.exec(`ALTER TABLE projects ADD COLUMN autoProcessBacklog INTEGER DEFAULT 0`);
-} catch {
-  // Column already exists
-}
-
+// Add maxTasksPerSession to projects
 try {
   db.exec(`ALTER TABLE projects ADD COLUMN maxTasksPerSession INTEGER DEFAULT 10`);
 } catch {
@@ -105,20 +99,20 @@ try {
 }
 
 // ========== Project Operations ==========
-export const projectOps = {
+export const projectOps: any = {
   getAll: db.prepare('SELECT * FROM projects ORDER BY createdAt DESC'),
   getById: db.prepare('SELECT * FROM projects WHERE id = ?'),
   create: db.prepare(
     'INSERT INTO projects (id, name, rootDirectory, defaultModel, permissionMode) VALUES (?, ?, ?, ?, ?)'
   ),
   update: db.prepare(
-    'UPDATE projects SET name = ?, rootDirectory = ?, defaultModel = ?, permissionMode = ?, autoProcessBacklog = ?, maxTasksPerSession = ?, updatedAt = datetime(\'now\') WHERE id = ?'
+    'UPDATE projects SET name = ?, rootDirectory = ?, defaultModel = ?, permissionMode = ?, maxTasksPerSession = ?, updatedAt = datetime(\'now\') WHERE id = ?'
   ),
   delete: db.prepare('DELETE FROM projects WHERE id = ?'),
 };
 
 // ========== Session Operations ==========
-export const sessionOps = {
+export const sessionOps: any = {
   getByProject: db.prepare('SELECT * FROM sessions WHERE projectId = ? ORDER BY sessionOrder ASC'),
   getById: db.prepare('SELECT * FROM sessions WHERE id = ?'),
   create: db.prepare(
@@ -159,12 +153,10 @@ export const sessionOps = {
 };
 
 // ========== Task Operations ==========
-export const taskOps = {
+export const taskOps: any = {
   getByProject: db.prepare('SELECT * FROM tasks WHERE projectId = ? ORDER BY taskOrder ASC'),
   getBySession: db.prepare('SELECT * FROM tasks WHERE sessionId = ? ORDER BY taskOrder ASC'),
-  getBacklog: db.prepare(
-    'SELECT * FROM tasks WHERE projectId = ? AND location = \'backlog\' ORDER BY taskOrder ASC'
-  ),
+
   getQueue: db.prepare(
     'SELECT * FROM tasks WHERE projectId = ? AND location = \'queue\' ORDER BY taskOrder ASC'
   ),
@@ -196,9 +188,7 @@ export const taskOps = {
   updateOrder: db.prepare('UPDATE tasks SET taskOrder = ? WHERE id = ?'),
   updatePrompt: db.prepare('UPDATE tasks SET prompt = ? WHERE id = ?'),
   delete: db.prepare('DELETE FROM tasks WHERE id = ?'),
-  getMaxBacklogOrder: db.prepare(
-    'SELECT COALESCE(MAX(taskOrder), -1) as maxOrder FROM tasks WHERE projectId = ? AND location = \'backlog\''
-  ),
+
   getMaxQueueOrder: db.prepare(
     'SELECT COALESCE(MAX(taskOrder), -1) as maxOrder FROM tasks WHERE projectId = ? AND location = \'queue\''
   ),
@@ -208,7 +198,7 @@ export const taskOps = {
 };
 
 // ========== Task Event Operations ==========
-export const eventOps = {
+export const eventOps: any = {
   getByTask: db.prepare('SELECT * FROM task_events WHERE taskId = ? ORDER BY timestamp ASC'),
   create: db.prepare(
     'INSERT INTO task_events (id, taskId, eventType, data) VALUES (?, ?, ?, ?)'
@@ -217,7 +207,7 @@ export const eventOps = {
 };
 
 // ========== Settings Operations ==========
-export const settingsOps = {
+export const settingsOps: any = {
   get: db.prepare('SELECT value FROM settings WHERE key = ?'),
   set: db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)'),
 };
