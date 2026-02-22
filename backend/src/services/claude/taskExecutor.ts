@@ -206,6 +206,10 @@ export class TaskExecutor {
             if (isHumanInputNeeded(event)) {
               callbacks.onHumanInput(event);
             } else {
+              // Debug: Log result events
+              if (event.type === 'result') {
+                console.log('[TaskExecutor] Processing result event in poll:', event.subtype, taskId);
+              }
               callbacks.onData(event);
             }
           } catch {
@@ -252,21 +256,25 @@ export class TaskExecutor {
             lineBuffer += text;
           }
 
-          // Process remaining lines
+          // Process remaining incomplete line if any
+          // lineBuffer should only contain at most one incomplete line from polling
           if (lineBuffer.trim()) {
-            const lines = lineBuffer.split('\n');
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed) continue;
-              hasReceivedData = true;
+            const trimmed = lineBuffer.trim();
+            hasReceivedData = true;
 
-              try {
-                const event = JSON.parse(trimmed);
-                if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
-                  sessionId = event.session_id;
-                }
-                callbacks.onData(event);
-              } catch {
+            try {
+              const event = JSON.parse(trimmed);
+              if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
+                sessionId = event.session_id;
+              }
+              // Debug: Log result events
+              if (event.type === 'result') {
+                console.log('[TaskExecutor] Processing result event in final read:', event.subtype, taskId);
+              }
+              callbacks.onData(event);
+            } catch {
+              // If it's not valid JSON, it was an incomplete line
+              if (trimmed.length > 0) {
                 callbacks.onData({ type: 'raw', text: trimmed });
               }
             }
